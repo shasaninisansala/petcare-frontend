@@ -28,13 +28,13 @@ const Navbar = () => {
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-8">
-          <a href="#home" className="text-gray-700 hover:text-primary transition-colors font-medium">
+          <a href="/" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Home
           </a>
           <a href="#adopt" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Adopt
           </a>
-          <a href="#donate" className="text-gray-700 hover:text-primary transition-colors font-medium">
+          <a href="/donate" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Donate
           </a>
           <a href="#emergency" className="text-primary font-semibold hover:text-primary-dark transition-colors">
@@ -43,9 +43,9 @@ const Navbar = () => {
           <a href="#breed-info" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Breed Info
           </a>
-          <a href="#about" className="text-gray-700 hover:text-primary transition-colors font-medium">
+          <Link to="/about" className="text-gray-700 hover:text-primary transition-colors font-medium">
             About Us
-          </a>
+          </Link>
         </div>
 
         {/* Auth Buttons */}

@@ -22,11 +22,11 @@ const Hero = () => {
                 Adopt a Pet
               </button>
               <Link
-  to="/register"
-  className="border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition-all inline-block text-center"
->
-  Register Your Pet
-</Link>
+                to="/register"
+                className="border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition-all inline-block text-center"
+                >
+                Register Your Pet
+              </Link>
             </div>
           </div>
 

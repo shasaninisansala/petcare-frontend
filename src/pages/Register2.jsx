@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { PawPrint } from 'lucide-react';
-import { Link } from "react-router-dom";
+import { Link , useNavigate} from "react-router-dom";
+import ShelterRegistrationPopup from "./ShelterReg";
+import ShelterSubmittedPopup from './Regsucess';
 
 export default function RegisterPageStep2() {
+  const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showShelterPopup, setShowShelterPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
@@ -20,11 +25,22 @@ export default function RegisterPageStep2() {
       alert('Please agree to the Terms & Conditions');
       return;
     }
-    // Add your form submission logic here
-    console.log('Account created with role:', selectedRole);
+    if (selectedRole === 'shelter') {
+          setShowShelterPopup(true);
+    } else {
+      console.log('Account created with role:', selectedRole);
+    }
   };
 
+  const handleShelterSubmit = (shelterData) => {
+    console.log('Shelter registration data:', shelterData);
+    setShowShelterPopup(false);
+    setShowSuccessPopup(true);
+  };
+
+
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -177,5 +193,15 @@ export default function RegisterPageStep2() {
         <p className="text-xs text-gray-500">© 2024 PetCare Inc. All rights reserved.</p>
       </footer>
     </div>
+    <ShelterRegistrationPopup
+        isOpen={showShelterPopup}
+        onClose={() => setShowShelterPopup(false)}
+        onSubmit={handleShelterSubmit}
+      />
+      <ShelterSubmittedPopup
+        isOpen={showSuccessPopup}
+        onClose={() => setShowSuccessPopup(false)}
+      />
+  </>
   );
 }
