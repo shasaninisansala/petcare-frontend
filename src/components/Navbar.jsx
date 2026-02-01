@@ -31,7 +31,7 @@ const Navbar = () => {
           <a href="/" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Home
           </a>
-          <a href="#adopt" className="text-gray-700 hover:text-primary transition-colors font-medium">
+          <a href="/adopt" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Adopt
           </a>
           <a href="/donate" className="text-gray-700 hover:text-primary transition-colors font-medium">
@@ -40,7 +40,7 @@ const Navbar = () => {
           <a href="#emergency" className="text-primary font-semibold hover:text-primary-dark transition-colors">
             Emergency
           </a>
-          <a href="#breed-info" className="text-gray-700 hover:text-primary transition-colors font-medium">
+          <a href="/breedinfo" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Breed Info
           </a>
           <Link to="/about" className="text-gray-700 hover:text-primary transition-colors font-medium">
