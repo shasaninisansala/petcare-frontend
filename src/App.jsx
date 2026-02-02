@@ -28,6 +28,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ShelterVerification from "./pages/ShelterVerification";
 import DonationMonitoring from "./pages/DonationMontoring";
 import VerificationReview from "./pages/VerificationReview";
+import EmergencyVetAssistant from "./pages/EmergencyAI";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
           <Route path="/donate" element={<DonatePage />} />
           <Route path="/adopt" element={<AdoptionPage />} />
           <Route path="/breedinfo" element={<BreedInformation />} />
+          <Route path="/emergency" element={<EmergencyVetAssistant />} />
 
           {/* Shelter layout route */}
           <Route path="/shelter" element={<ShelterLayout />}>
