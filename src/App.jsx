@@ -23,6 +23,11 @@ import PetOwnerDashboard from "./pages/PetOwnerDashboard";
 import AddNewPet from "./pages/AddNewPet";
 import MyPets from "./pages/MyPets";
 import PetDetailComplete from "./pages/PetModals";
+import AdminLayout from "./components/AdminLayout";
+import AdminDashboard from "./pages/AdminDashboard";
+import ShelterVerification from "./pages/ShelterVerification";
+import DonationMonitoring from "./pages/DonationMontoring";
+import VerificationReview from "./pages/VerificationReview";
 
 function App() {
   return (
@@ -58,6 +63,17 @@ function App() {
             
           </Route>
           <Route path="/pet-owner/petdetail" element={<PetDetailComplete />} />
+
+          {/* PetOwner layout route */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="shelter-verification" element={<ShelterVerification />} />
+            <Route path="donations" element={<DonationMonitoring />} />
+            
+          </Route>
+
+          <Route 
+            path="/admin/shelter-verification/:id" element={<VerificationReview />} />
           
 
         </Routes>

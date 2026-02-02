@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { ArrowLeft, Plus, CheckCircle, Clock, Calendar, Download, Edit, Trash2, Search } from 'lucide-react';
 import { Link } from "react-router-dom";
 import AIPetCareModal from './AIHealth';
+import AddVaccinationModal from './AddVaccinationModel';
+import AddGrowthRecordModal from './AddGrowthRecordModal';
+import AddMedicalRecordModal from './AddMedicalRecordModal';
+
 
 
 export default function PetDetailComplete() {
   const [activeTab, setActiveTab] = useState('vaccination');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVaccinationModalOpen, setIsVaccinationModalOpen] = useState(false);
+
 
 
   const tabs = [
@@ -60,9 +66,12 @@ export default function PetDetailComplete() {
           </div>
 
           <div className="flex gap-4 mt-6">
-            <button className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center justify-center gap-2">
-              Add Vaccination
-              <Plus className="w-5 h-5" />
+            <button
+                onClick={() => setIsVaccinationModalOpen(true)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                Add Vaccination
+                <Plus className="w-5 h-5" />
             </button>
             <button
                 onClick={() => setIsModalOpen(true)}
@@ -117,9 +126,18 @@ export default function PetDetailComplete() {
         )}
       </div>
       <AIPetCareModal
-      isOpen={isModalOpen}
-      onClose={() => setIsModalOpen(false)}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+     />
+
+    <AddVaccinationModal
+        isOpen={isVaccinationModalOpen}
+        onClose={() => setIsVaccinationModalOpen(false)}
+        petName="Cooper"
+        petType="Dog"
+        petBreed="Golden Retriever"
     />
+
     </div>
 
   );
@@ -228,6 +246,8 @@ function GrowthTab() {
     { date: 'Sep 15, 2023', weight: '32 | kg', height: '57.9 cm' },
     { date: 'Sep 15, 2023', weight: '32 | kg', height: '57.9 cm' }
   ];
+  const [isGrowthModalOpen, setIsGrowthModalOpen] = useState(false);
+
 
   return (
     <>
@@ -238,10 +258,14 @@ function GrowthTab() {
             <Download className="w-4 h-4" />
             Export PDF
           </button>
-          <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2">
+          <button
+            onClick={() => setIsGrowthModalOpen(true)}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             Add Growth Record
           </button>
+
         </div>
       </div>
 
@@ -353,7 +377,6 @@ function GrowthTab() {
                   <td className="px-6 py-4 text-sm">{record.weight}</td>
                   <td className="px-6 py-4 text-sm">{record.height}</td>
                   <td className="px-6 py-4 flex gap-2">
-                    <button className="p-1 text-gray-600 hover:text-blue-600"><Edit className="w-4 h-4" /></button>
                     <button className="p-1 text-gray-600 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
@@ -364,6 +387,12 @@ function GrowthTab() {
             <button className="text-gray-600 text-sm font-medium">Load More History</button>
           </div>
         </div>
+        <AddGrowthRecordModal
+            isOpen={isGrowthModalOpen}
+            onClose={() => setIsGrowthModalOpen(false)}
+            petName="Cooper"
+        />
+
       </div>
     </>
   );
@@ -377,6 +406,8 @@ function MedicalTab() {
     { date: 'Apr 19, 2023', condition: 'Rabies Vaccination', type: 'Vaccine', treatment: '3-Year Booster Shot', notes: 'Next due: April 2026. No adverse reactions observed.' },
     { date: 'Jan 14, 2023', condition: 'Limping (Front Right)', type: 'Injury', treatment: 'Rest and NSAID (Carprofen)', notes: 'X-ray clear. Likely soft tissue strain from park. Symptoms cleared in 4 days.' }
   ];
+  const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
+
 
   return (
     <>
@@ -386,10 +417,14 @@ function MedicalTab() {
           <button className="p-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
             <Search className="w-5 h-5" />
           </button>
-          <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium flex items-center gap-2">
+          <button
+            onClick={() => setIsMedicalModalOpen(true)}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium flex items-center gap-2"
+            >
             <Plus className="w-4 h-4" />
             Add Record
-          </button>
+        </button>
+
         </div>
       </div>
 
@@ -422,6 +457,12 @@ function MedicalTab() {
             ))}
           </tbody>
         </table>
+        <AddMedicalRecordModal
+            isOpen={isMedicalModalOpen}
+            onClose={() => setIsMedicalModalOpen(false)}
+            petName="Cooper"
+        />
+
       </div>
     </>
   );
