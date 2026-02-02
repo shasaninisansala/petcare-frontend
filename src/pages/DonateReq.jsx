@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, Calendar, DollarSign, PlusCircle } from 'lucide-react';
+import { Search, Download, PlusCircle, Upload } from 'lucide-react';
 import axios from 'axios';
 
 export default function Donations() {
@@ -7,18 +7,17 @@ export default function Donations() {
   const [donations, setDonations] = useState([]);
   const [selectedDonation, setSelectedDonation] = useState(null);
 
-  // Request Donation modal
   const [showRequestForm, setShowRequestForm] = useState(false);
 
-  // Request form state
   const [requestForm, setRequestForm] = useState({
+    shelterId: '',
     purpose: '',
     amount: '',
     description: '',
-    neededDate: ''
+    neededDate: '',
+    image: null
   });
 
-  // Fetch donations
   useEffect(() => {
     axios.get('/api/donations')
       .then(res => setDonations(res.data))
@@ -26,16 +25,39 @@ export default function Donations() {
   }, []);
 
   const handleRequestChange = (e) => {
-    setRequestForm({ ...requestForm, [e.target.name]: e.target.value });
+    const { name, value, files } = e.target;
+    if (name === 'image') {
+      setRequestForm({ ...requestForm, image: files[0] });
+    } else {
+      setRequestForm({ ...requestForm, [name]: value });
+    }
   };
 
   const submitRequest = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/donation-requests', requestForm);
+      const formData = new FormData();
+      formData.append("shelterId", requestForm.shelterId);
+      formData.append("purpose", requestForm.purpose);
+      formData.append("amount", requestForm.amount);
+      formData.append("description", requestForm.description);
+      formData.append("neededDate", requestForm.neededDate);
+      formData.append("image", requestForm.image);
+
+      await axios.post('/api/donation-requests', formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
       alert("Donation request submitted!");
       setShowRequestForm(false);
-      setRequestForm({ purpose: '', amount: '', description: '', neededDate: '' });
+      setRequestForm({
+        shelterId: '',
+        purpose: '',
+        amount: '',
+        description: '',
+        neededDate: '',
+        image: null
+      });
     } catch (err) {
       console.error(err);
       alert("Failed to submit request");
@@ -52,13 +74,11 @@ export default function Donations() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Donations</h2>
             <p className="text-gray-600">Review and manage incoming donations for your shelter.</p>
           </div>
-
           <div className="flex gap-3">
             <button className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
               <Download className="w-5 h-5" />
               Export
             </button>
-
             <button
               onClick={() => setShowRequestForm(true)}
               className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600"
@@ -66,18 +86,6 @@ export default function Donations() {
               <PlusCircle className="w-5 h-5" />
               Request Donation
             </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-xl border">
-            <p className="text-sm text-gray-600">Total Received</p>
-            <p className="text-3xl font-bold">$48,290.00</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl border">
-            <p className="text-sm text-gray-600">This Month</p>
-            <p className="text-3xl font-bold">$3,450.00</p>
           </div>
         </div>
 
@@ -133,26 +141,6 @@ export default function Donations() {
           </table>
         </div>
 
-        {/* Receipt Modal */}
-        {selectedDonation && (
-          <div className="fixed inset-0 bg-black/30 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-xl w-96">
-              <h2 className="text-xl font-bold mb-3">Donation Receipt</h2>
-              <p><b>Donor:</b> {selectedDonation.donor}</p>
-              <p><b>Date:</b> {selectedDonation.date}</p>
-              <p><b>Amount:</b> {selectedDonation.amount}</p>
-              <p><b>Purpose:</b> {selectedDonation.purpose}</p>
-              <p><b>Status:</b> {selectedDonation.status}</p>
-              <button
-                onClick={() => setSelectedDonation(null)}
-                className="mt-4 w-full bg-green-500 text-white py-2 rounded"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Request Donation Modal */}
         {showRequestForm && (
           <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
@@ -160,6 +148,16 @@ export default function Donations() {
               <h2 className="text-xl font-bold mb-4">Request Donation</h2>
 
               <form onSubmit={submitRequest} className="space-y-3">
+
+                <input
+                  name="shelterId"
+                  placeholder="Shelter ID"
+                  value={requestForm.shelterId}
+                  onChange={handleRequestChange}
+                  required
+                  className="w-full border p-2 rounded"
+                />
+
                 <input
                   name="purpose"
                   placeholder="Purpose (Medical, Food, Rescue)"
@@ -197,6 +195,25 @@ export default function Donations() {
                   className="w-full border p-2 rounded"
                 />
 
+                {/* Styled Image Upload */}
+                <div className="flex justify-center mb-4">
+                  <label className="w-80 rounded-lg p-6 text-center hover:border-green-500 transition-colors cursor-pointer border border-gray-300">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Upload className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-700 font-medium mb-1">Add</p>
+                    <p className="text-sm text-gray-500">Images/jpeg,png,jpg,gif</p>
+                    <input
+                      type="file"
+                      name="image"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleRequestChange}
+                      required
+                    />
+                  </label>
+                </div>
+
                 <div className="flex justify-end gap-3 pt-3">
                   <button
                     type="button"
@@ -214,7 +231,6 @@ export default function Donations() {
                   </button>
                 </div>
               </form>
-
             </div>
           </div>
         )}
