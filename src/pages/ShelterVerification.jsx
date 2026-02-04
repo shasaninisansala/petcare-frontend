@@ -1,6 +1,14 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+
+const api = axios.create({
+  baseURL: '/api'
+});
+
+
 
 export default function ShelterVerification() {
   const stats = [
@@ -35,53 +43,14 @@ export default function ShelterVerification() {
     }
   ];
 
-  const shelters = [
-    {
-      initials: 'HP',
-      name: 'Happy Paws Sanctuary',
-      licenseNo: 'LIC-98231',
-      submissionDate: 'Oct 24, 2023',
-      location: 'Austin, TX',
-      status: 'Pending Review',
-      statusColor: 'bg-orange-100 text-orange-700'
-    },
-    {
-      initials: 'SH',
-      name: 'Safe Haven Pets',
-      licenseNo: 'LIC-11029',
-      submissionDate: 'Oct 23, 2023',
-      location: 'Seattle, WA',
-      status: 'Pending Review',
-      statusColor: 'bg-orange-100 text-orange-700'
-    },
-    {
-      initials: 'KA',
-      name: 'Kindness Animal Rescue',
-      licenseNo: 'LIC-44521',
-      submissionDate: 'Oct 22, 2023',
-      location: 'Miami, FL',
-      status: 'Under Review',
-      statusColor: 'bg-blue-100 text-blue-700'
-    },
-    {
-      initials: 'FH',
-      name: 'Forever Home Shelter',
-      licenseNo: 'LIC-00293',
-      submissionDate: 'Oct 21, 2023',
-      location: 'Chicago, IL',
-      status: 'Pending Review',
-      statusColor: 'bg-orange-100 text-orange-700'
-    },
-    {
-      initials: 'PC',
-      name: 'Paws & Claws Hub',
-      licenseNo: 'LIC-88210',
-      submissionDate: 'Oct 20, 2023',
-      location: 'Denver, CO',
-      status: 'Pending Review',
-      statusColor: 'bg-orange-100 text-orange-700'
-    }
-  ];
+  const [shelters, setShelters] = useState([]);
+
+useEffect(() => {
+  api.get('/admin/pending')
+    .then(res => setShelters(res.data))
+    .catch(err => console.error(err));
+}, []);
+
 
   return (
     <div className="flex-1 bg-gray-50">
@@ -142,14 +111,14 @@ export default function ShelterVerification() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-blue-700 font-bold text-sm">{shelter.initials}</span>
+                          <span className="text-blue-700 font-bold text-sm">{shelter.shelterName.substring(0,2)}</span>
                         </div>
-                        <span className="font-medium text-gray-900">{shelter.name}</span>
+                        <span className="font-medium text-gray-900">{shelter.sheltername}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{shelter.licenseNo}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{shelter.licenseNumber}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{shelter.submissionDate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{shelter.location}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{shelter.address}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${shelter.statusColor}`}>
                         {shelter.status} {shelter.status === 'Pending Review' ? '⏱' : '👁'}

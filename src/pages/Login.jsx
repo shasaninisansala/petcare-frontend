@@ -16,10 +16,37 @@ export default function LoginPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Login submitted:', formData);
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("http://localhost:8080/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+      }),
+    });
+
+    const result = await response.text();  
+
+    if (result === "LOGIN_SUCCESS") {
+  alert("Login Success ");
+  window.location.href = "/shelter/dashboard";
+}
+ else {
+      alert(result);  
+    }
+
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Cannot connect to server");
+  }
+};
+
 
   const handleGoogleLogin = () => {
     console.log('Google login clicked');

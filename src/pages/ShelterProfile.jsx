@@ -22,28 +22,34 @@ export default function ShelterProfile() {
 
   // Fetch shelter info on mount
   useEffect(() => {
-    axios.get("/api/shelter/profile") // replace with your backend endpoint
-      .then(res => {
-        setFormData({
-          ...formData,
-          shelterName: res.data.shelterName,
-          contactPhone: res.data.contactPhone,
-          email: res.data.email,
-          licenseNo: res.data.licenseNo,
-          description: res.data.description,
-          streetAddress: res.data.streetAddress || "",
-          addressLine2: res.data.addressLine2 || "",
-          city: res.data.city || "",
-          state: res.data.state || "",
-          zipCode: res.data.zipCode || "",
-          country: res.data.country || ""
-        });
-        if (res.data.logoUrl) {
-          setLogoPreview(res.data.logoUrl);
-        }
-      })
-      .catch(err => console.error(err));
-  }, []);
+  const email = localStorage.getItem("email");
+
+  axios.get(`/api/shelter/profile/email/${email}`)
+    .then((res) => {
+      const data = res.data;
+
+      setFormData({
+        shelterName: data.shelterName,
+        contactPhone: data.phone,
+        email: data.email,
+        licenseNo: data.licenseNumber,
+        description: data.description,
+        streetAddress: data.address || "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+      });
+
+      if (data.profileImage) {
+        setLogoPreview(data.profileImage);
+      }
+    })
+    .catch((err) => console.error(err));
+}, []);   // ✅ no dependency warning
+
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

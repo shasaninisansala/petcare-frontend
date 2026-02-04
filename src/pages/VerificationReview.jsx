@@ -1,19 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ZoomIn, ZoomOut, RotateCw, Download, X, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import axios from 'axios';
+
+
+const api = axios.create({
+  baseURL: 'http://localhost:8080/api',
+});
+
+
+
 
 export default function VerificationReview() {
   const [adminFeedback, setAdminFeedback] = useState('');
 
-  const shelterInfo = {
-    legalName: 'Happy Paws Shelter LLC',
-    regNo: 'REG-10926336',
-    address: '123 Rescue Way, Springfield, IL 62704',
-    email: 'contact@happypaws.org',
-    phone: '+1 (555) 987-6543',
-    licenseNo: 'L-125456',
-    mission: 'Happy Paws Shelter is a non-profit organization dedicated to rescuing abandoned dogs and cats. We provide high-quality veterinary care, rehabilitation, and finding loving forever homes. Our facility handles up to 50 active animals at a given time and operates with a team of 15 staff members.'
-  };
+  const { licenseNo } = useParams();
+const [shelterInfo, setShelterInfo] = useState({});
+
+useEffect(() => {
+  api.get(`/admin/shelter/${licenseNo}`)
+    .then(res => setShelterInfo(res.data))
+    .catch(err => console.error(err));
+}, [licenseNo]);
+
 
     const [checklist, setChecklist] = useState([
     { label: 'License extracted', checked: false },
@@ -66,33 +75,33 @@ export default function VerificationReview() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Legal Name</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">shelterName</label>
                   <p className="text-gray-900 font-medium">{shelterInfo.legalName}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Registration No.</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">regId</label>
                   <p className="text-gray-900 font-medium">{shelterInfo.regNo}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Address</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">address</label>
                   <p className="text-gray-900 font-medium">{shelterInfo.address}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">email</label>
                   <p className="text-gray-900 font-medium">{shelterInfo.email}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">phone</label>
                   <p className="text-gray-900 font-medium">{shelterInfo.phone}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">License Number</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">licenseNumber</label>
                   <p className="text-gray-900 font-medium">{shelterInfo.licenseNo}</p>
                 </div>
               </div>
 
               <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-600 mb-2">Mission</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">description</label>
                 <p className="text-gray-700 leading-relaxed">{shelterInfo.mission}</p>
               </div>
             </div>
