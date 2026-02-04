@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Upload, Eye } from 'lucide-react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function AddPetForm() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     petName: '',
     breed: '',
@@ -12,10 +13,12 @@ export default function AddPetForm() {
     vaccinated: false,
     kidFriendly: false,
     medicalNotes: '',
-    specialNeeds: ''
+    specialNeeds: '',
+    shelter_id: '' // Now controlled by the user input
   });
 
-  const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -28,7 +31,56 @@ export default function AddPetForm() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImage(URL.createObjectURL(file));
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Simple validation for Shelter ID
+    if (!formData.shelter_id) {
+        alert("Please enter a Shelter ID");
+        return;
+    }
+
+    try {
+      const data = new FormData();
+      
+      const adoptionData = {
+        pet_name: formData.petName,
+        breed: formData.breed,
+        species: formData.species,
+        age: parseInt(formData.age) || 0,
+        size: formData.size,
+        vaccinated: formData.vaccinated,
+        kid_friendly: formData.kidFriendly,
+        medical_notes: formData.medicalNotes,
+        special_needs: formData.specialNeeds,
+        shelter_id: parseInt(formData.shelter_id)
+      };
+
+      data.append('adoption', JSON.stringify(adoptionData));
+      
+      if (imageFile) {
+        data.append('image', imageFile);
+      }
+
+      const response = await fetch('http://localhost:8081/adoption-app/adoptions', {
+        method: 'POST',
+        body: data,
+      });
+
+      if (response.ok) {
+        alert("Pet adoption listing created successfully!");
+        navigate('/shelter/adoption-listings');
+      } else {
+        alert("Failed to save to database. Check if the Shelter ID exists.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Network error. Please check your backend.");
     }
   };
 
@@ -58,17 +110,16 @@ export default function AddPetForm() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">List a Pet for Adoption</h2>
             <p className="text-gray-600">Showcase a new companion to potential loving families.</p>
           </div>
-          <Link to= '/shelter/adoption-listings'>
-          <button className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
-            Publish Listing
-          </button>
+          <Link to='/shelter/adoption-listings'>
+            <button className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+                Publish Listing
+            </button>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Form Section - 2/3 width */}
+          {/* Form Section */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
             <div className="bg-white rounded-xl border-2 border-dashed border-blue-200 p-6">
               <div className="flex items-center gap-2 mb-6">
                 <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
@@ -102,7 +153,19 @@ export default function AddPetForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              {/* Added Shelter ID Field */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Shelter ID</label>
+                  <input
+                    type="number"
+                    name="shelter_id"
+                    value={formData.shelter_id}
+                    onChange={handleInputChange}
+                    placeholder="ID"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Species</label>
                   <select
@@ -120,7 +183,7 @@ export default function AddPetForm() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
                   <input
-                    type="text"
+                    type="number"
                     name="age"
                     value={formData.age}
                     onChange={handleInputChange}
@@ -210,18 +273,18 @@ export default function AddPetForm() {
                 <h3 className="text-lg font-bold text-gray-900">Pet Media</h3>
               </div>
 
-              <label className="rounded-lg p-8 text-center hover:border-green-500 transition-colors cursor-pointer">
+              <label className="block rounded-lg p-8 text-center hover:border-green-500 transition-colors cursor-pointer border-2 border-transparent">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Upload className="w-8 h-8 text-gray-400" />
                 </div>
-                <p className="text-gray-700 font-medium mb-1">Add</p>
+                <p className="text-gray-700 font-medium mb-1">Add Image</p>
                 <p className="text-sm text-gray-500">Images/jpeg,png,jpg,gif</p>
-                <input type="file" className="hidden" onChange={handleImageChange} />
+                <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
               </label>
             </div>
           </div>
 
-          {/* Preview Section - 1/3 width */}
+          {/* Preview Section */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-8">
               <div className="flex items-center gap-2 mb-4">
@@ -229,11 +292,10 @@ export default function AddPetForm() {
                 <span className="text-sm font-medium text-gray-600">Live Listing Preview</span>
               </div>
 
-              {/* Preview Card */}
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="h-48 bg-gray-100">
                   <img
-                    src={image || "https://images.unsplash.com/photo-1505628346881-b72b27e84530?w=400&h=300&fit=crop"}
+                    src={imagePreview || "https://images.unsplash.com/photo-1505628346881-b72b27e84530?w=400&h=300&fit=crop"}
                     alt="Pet preview"
                     className="w-full h-full object-cover"
                   />
@@ -260,11 +322,16 @@ export default function AddPetForm() {
                       </div>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 mb-4">
+                  <p className="text-sm text-gray-700 mb-4 line-clamp-2">
                     {formData.medicalNotes || "No description yet."}
                   </p>
-                  <p className="text-xs text-green-600 mb-3">Read More →</p>
-                  <button className="w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2">
+                  <p className="text-xs text-green-600 mb-3 cursor-default">Read More →</p>
+                  
+                  {/* SUBMIT BUTTON */}
+                  <button 
+                    onClick={handleSubmit}
+                    className="w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
+                  >
                     Adopt {formData.petName || "Pet"}
                     <span>→</span>
                   </button>
