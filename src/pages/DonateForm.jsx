@@ -1,207 +1,366 @@
-import React, { useState } from 'react';
-import { X, Check, Utensils, Heart, Home, ArrowRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { loadStripe } from '@stripe/stripe-js';
+import { Utensils, Heart, Home, Target, TrendingUp, Users, Calendar, DollarSign, Building, MapPin } from 'lucide-react';
 
-// Initialize Stripe (replace with your publishable key)
-const stripePromise = loadStripe('pk_test_YOUR_PUBLISHABLE_KEY');
+export default function DonationDetailsPage() {
+  const { requestId: paramRequestId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-export default function DonationModal({ isOpen, onClose, shelter }) {
-  const [selectedPurpose, setSelectedPurpose] = useState(null);
-  const [selectedAmount, setSelectedAmount] = useState(25);
+  // Allow requestId from URL param OR navigation state
+  const requestId = paramRequestId || location.state?.requestId;
+  
+  // Get additional data from location state
+  const {
+    requestTitle = '',
+    requestDescription = '',
+    shelterName = '',
+    targetAmount = '',
+    currentAmount = '',
+    imageUrl = ''
+  } = location.state || {};
+
+  const [donationRequest, setDonationRequest] = useState(null);
+  const [purpose, setPurpose] = useState(null);
+  const [amount, setAmount] = useState(25);
   const [customAmount, setCustomAmount] = useState('');
-  const [donorName, setDonorName] = useState(''); // NEW
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
 
-  const purposes = [
-    {
-      id: 'food',
-      icon: Utensils,
-      label: 'Food',
-      description: 'Nutrition & Special Diets',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      borderColor: 'border-orange-500'
-    },
-    {
-      id: 'medical',
-      icon: Heart,
-      label: 'Medical Care',
-      description: 'Vaccines & Surgeries',
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-500'
-    },
-    {
-      id: 'shelter',
-      icon: Home,
-      label: 'Shelter & Care',
-      description: 'Housing & Daily Maintenance',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-500'
-    }
-  ];
-
-  const amounts = [10, 25, 50];
-
-  const handleDonate = async () => {
-    if (!selectedPurpose) {
-      alert('Please select a purpose for your donation');
+  useEffect(() => {
+    if (!requestId) {
+      setLoading(false);
       return;
     }
 
-    if (!donorName) {
-      alert('Please enter your name');
-      return;
-    }
+    console.log('Fetching donation request with ID:', requestId);
 
-    const donationAmount = customAmount || selectedAmount;
-    if (!donationAmount || donationAmount <= 0) {
-      alert('Please enter a valid amount');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const response = await axios.post(
-        'http://localhost:8080/api/donations/create-checkout-session',
-        {
-          shelterId: shelter.id,
-          shelterName: shelter.name,
-          amount: donationAmount,
-          purpose: selectedPurpose,
-          donorName: donorName, // SEND TO BACKEND
-          successUrl: `${window.location.origin}/donation-success?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: window.location.href
+    axios
+      .get(`http://localhost:8080/api/donation-requests/${requestId}`)
+      .then((res) => {
+        console.log('Backend response:', res.data);
+        setDonationRequest(res.data);
+        
+        // Calculate progress percentage
+        if (res.data.targetAmount && res.data.currentAmount) {
+          const target = parseFloat(res.data.targetAmount);
+          const current = parseFloat(res.data.currentAmount);
+          if (target > 0) {
+            const progressCalc = (current / target) * 100;
+            setProgress(Math.min(100, Math.round(progressCalc * 10) / 10));
+          }
         }
-      );
+      })
+      .catch((err) => {
+        console.error('Axios error:', err);
+        // Create fallback data from location state
+        setDonationRequest({
+          id: requestId,
+          title: requestTitle || 'Unknown Campaign',
+          description: requestDescription || 'No description available',
+          shelterName: shelterName || 'Unknown Shelter',
+          shelterId: 1,
+          targetAmount: targetAmount || '1000',
+          currentAmount: currentAmount || '0',
+          status: 'OPEN',
+          imageUrl: imageUrl || '',
+          createdAt: new Date().toISOString()
+        });
+      })
+      .finally(() => setLoading(false));
+  }, [requestId, requestTitle, requestDescription, shelterName, targetAmount, currentAmount, imageUrl]);
 
-      const { sessionId } = response.data;
+  const finalAmount = Number(customAmount || amount);
 
-      const stripe = await stripePromise;
-      const { error } = await stripe.redirectToCheckout({ sessionId });
+  const continueToPayment = () => {
+    if (!purpose || finalAmount <= 0) {
+      alert('Select purpose and enter a valid amount');
+      return;
+    }
 
-      if (error) {
-        console.error('Stripe error:', error);
-        alert('Payment failed. Please try again.');
-      }
+    // Get the correct donation request ID
+    const currentRequestId = donationRequest?.id || requestId;
+
+    console.log('Navigating to payment with donationRequestId:', currentRequestId);
+
+    navigate('/donate/payment', {
+      state: {
+        donationRequest, // Pass the entire donation request object
+        purpose,
+        amount: finalAmount,
+        donationRequestId: currentRequestId, // This is the critical fix!
+        shelter: {
+          title: donationRequest?.shelterName || 'Animal Shelter',
+          id: donationRequest?.shelterId || 1,
+          name: donationRequest?.shelterName || 'Animal Shelter'
+        }
+      },
+    });
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    if (!amount) return '0.00';
+    try {
+      return parseFloat(amount).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
     } catch (error) {
-      console.error('Donation error:', error);
-      alert('Failed to process donation. Please try again.');
-    } finally {
-      setIsProcessing(false);
+      return '0.00';
     }
   };
 
-  if (!isOpen) return null;
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric' 
+      });
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading donation details...</p>
+      </div>
+    </div>
+  );
+
+  if (!requestId)
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="bg-white max-w-md w-full rounded-3xl shadow-xl p-8 text-center">
+          <div className="text-gray-400 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">No Campaign Selected</h2>
+          <p className="text-gray-600 mb-6">
+            Please select a campaign to donate from the donations page.
+          </p>
+          <button
+            onClick={() => navigate('/donate')}
+            className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition"
+          >
+            Browse Campaigns
+          </button>
+        </div>
+      </div>
+    );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold text-gray-900">Donate to Shelter</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="w-6 h-6" />
-            </button>
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4">
+      <div className="max-w-lg mx-auto">
+        {/* Campaign Details Card */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          {/* Campaign Header with Status */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  donationRequest?.status === 'OPEN' ? 'bg-green-500 text-white' :
+                  donationRequest?.status === 'COMPLETED' ? 'bg-blue-500 text-white' :
+                  'bg-red-500 text-white'
+                }`}>
+                  {donationRequest?.status || 'OPEN'}
+                </span>
+              </div>
+              
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Campaign ID</p>
+                <p className="font-mono text-sm font-bold text-gray-700">{donationRequest?.id || 'N/A'}</p>
+              </div>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{donationRequest?.title}</h1>
+            
+            <p className="text-gray-600 mb-4">{donationRequest?.description}</p>
+            
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-gray-600 mb-1">
+                <span>Progress</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>${formatCurrency(donationRequest?.currentAmount)} raised</span>
+                <span>Goal: ${formatCurrency(donationRequest?.targetAmount)}</span>
+              </div>
+            </div>
+            
+            {/* Shelter Info */}
+            <div className="flex items-center gap-2 text-gray-700 mb-4">
+              <Building className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">{donationRequest?.shelterName || 'Unknown Shelter'}</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-sm text-gray-500">Shelter ID: {donationRequest?.shelterId || 'N/A'}</span>
+            </div>
+            
+            {/* Campaign ID & Date */}
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-3 h-3" />
+                <span>Created: {formatDate(donationRequest?.createdAt)}</span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Shelter Info */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="border-2 border-green-500 bg-green-50 rounded-lg p-4">
-            <h3 className="font-bold text-gray-900">{shelter?.name}</h3>
-            <p className="text-sm text-gray-600">📍 {shelter?.location}</p>
-            <p className="text-sm text-gray-700">{shelter?.description}</p>
+          {/* Donation Purpose */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-green-500" />
+              Donation Purpose
+            </h2>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 'food', icon: Utensils, label: 'Food', description: 'For animal food supplies' },
+                { id: 'medical', icon: Heart, label: 'Medical', description: 'For medical treatments' },
+                { id: 'shelter', icon: Home, label: 'Shelter', description: 'For shelter maintenance' },
+              ].map((p) => {
+                const Icon = p.icon;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setPurpose(p.id)}
+                    className={`p-4 rounded-xl text-center transition-all border-2 ${
+                      purpose === p.id
+                        ? 'border-green-500 bg-green-50 text-green-700 shadow-md scale-[1.03]'
+                        : 'border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className={`mx-auto mb-2 w-6 h-6 ${
+                      purpose === p.id ? 'text-green-600' : 'text-gray-600'
+                    }`} />
+                    <p className="font-medium text-sm">{p.label}</p>
+                    <p className="text-xs text-gray-500 mt-1">{p.description}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Donor Name */}
-        <div className="p-6 border-b border-gray-200">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Your Name
-          </label>
-          <input
-            type="text"
-            value={donorName}
-            onChange={(e) => setDonorName(e.target.value)}
-            placeholder="Enter your name"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            required
-          />
-        </div>
-
-        {/* Purpose */}
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-bold mb-4">Select Purpose</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {purposes.map((purpose) => {
-              const Icon = purpose.icon;
-              const isSelected = selectedPurpose === purpose.id;
-
-              return (
+          {/* Amount Selection */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-green-500" />
+              Donation Amount
+            </h2>
+            
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[10, 25, 50].map((a) => (
                 <button
-                  key={purpose.id}
-                  onClick={() => setSelectedPurpose(purpose.id)}
-                  className={`p-4 rounded-lg border-2 ${
-                    isSelected
-                      ? `${purpose.borderColor} ${purpose.bgColor}`
-                      : 'border-gray-200 bg-white'
+                  key={a}
+                  onClick={() => {
+                    setAmount(a);
+                    setCustomAmount('');
+                  }}
+                  className={`py-4 rounded-xl font-bold text-lg border-2 transition-all ${
+                    amount === a && !customAmount
+                      ? 'border-green-500 bg-green-500 text-white shadow-md'
+                      : 'border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className={`w-8 h-8 mx-auto mb-2 ${isSelected ? purpose.color : 'text-gray-400'}`} />
-                  <p className="text-sm font-semibold">{purpose.label}</p>
+                  ${a}
                 </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Amount */}
-        <div className="p-6">
-          <h3 className="text-lg font-bold mb-4">Choose Amount</h3>
-
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {amounts.map((amount) => (
-              <button
-                key={amount}
-                onClick={() => {
-                  setSelectedAmount(amount);
-                  setCustomAmount('');
+              ))}
+            </div>
+            
+            {/* Custom Amount Input */}
+            <div className="relative">
+              <DollarSign className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+              <input
+                type="number"
+                placeholder="Enter custom amount"
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value);
+                  if (e.target.value) {
+                    setAmount(0); // Clear preset amount when custom is entered
+                  }
                 }}
-                className="py-3 rounded-lg border-2"
-              >
-                ${amount}
-              </button>
-            ))}
+                min="1"
+                step="1"
+                className="w-full border-2 border-gray-200 rounded-xl pl-12 pr-4 py-3.5 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+              />
+            </div>
+            
+            {/* Selected Amount Display */}
+            {finalAmount > 0 && (
+              <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-green-700 font-medium">Your Donation:</span>
+                  <span className="text-xl font-bold text-green-700">${finalAmount.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-green-600 mt-1">
+                  This will help {donationRequest?.shelterName} reach their goal!
+                </p>
+              </div>
+            )}
           </div>
 
-          <input
-            type="number"
-            value={customAmount}
-            onChange={(e) => {
-              setCustomAmount(e.target.value);
-              setSelectedAmount(null);
-            }}
-            placeholder="Custom amount"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-          />
+          {/* Continue Button */}
+          <div className="p-6">
+            <button
+              onClick={continueToPayment}
+              disabled={!purpose || finalAmount <= 0}
+              className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
+                purpose && finalAmount > 0
+                  ? 'bg-green-500 text-white hover:bg-green-600 hover:shadow-lg active:scale-[0.99]'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {purpose && finalAmount > 0 
+                ? `Donate $${finalAmount.toFixed(2)} →` 
+                : 'Select Purpose & Amount'
+              }
+            </button>
+            
+            {!purpose && (
+              <p className="text-center text-sm text-red-500 mt-3">
+                Please select a donation purpose
+              </p>
+            )}
+            {purpose && finalAmount <= 0 && (
+              <p className="text-center text-sm text-red-500 mt-3">
+                Please enter a valid donation amount
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200">
-          <button
-            onClick={handleDonate}
-            disabled={isProcessing}
-            className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600"
-          >
-            {isProcessing ? 'Processing...' : 'Proceed to Donate'}
-            <ArrowRight className="inline w-5 h-5 ml-2" />
-          </button>
+        {/* Info Note */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="text-blue-500 mt-0.5">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Your donation goes directly to {donationRequest?.shelterName}. 
+                All donations are securely processed and you'll receive a receipt via email.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
