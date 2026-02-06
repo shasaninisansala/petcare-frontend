@@ -48,19 +48,19 @@ export default function AddPetForm() {
     try {
       const data = new FormData();
       
-      const adoptionData = {
-        pet_name: formData.petName,
-        breed: formData.breed,
-        species: formData.species,
-        age: parseInt(formData.age) || 0,
-        size: formData.size,
-        vaccinated: formData.vaccinated,
-        kid_friendly: formData.kidFriendly,
-        medical_notes: formData.medicalNotes,
-        special_needs: formData.specialNeeds,
-        shelter_id: parseInt(formData.shelter_id)
-      };
-
+// Change this inside your handleSubmit function
+const adoptionData = {
+  pet_name: formData.petName, // backend uses getPet_name()
+  breed: formData.breed,
+  species: formData.species,
+  age: parseInt(formData.age) || 0,
+  size: formData.size,
+  vaccinated: formData.vaccinated,
+  kid_friendly: formData.kidFriendly, // backend uses isKid_friendly()
+  medical_notes: formData.medicalNotes, // backend uses getMedical_notes()
+  special_needs: formData.specialNeeds, // backend uses getSpecial_needs()
+  shelterId: parseInt(formData.shelter_id) // ensure this matches your Entity's @Column
+};
       data.append('adoption', JSON.stringify(adoptionData));
       
       if (imageFile) {
