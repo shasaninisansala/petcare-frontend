@@ -3,11 +3,11 @@ import { LayoutDashboard, ShieldCheck, DollarSign, FileText, PawPrint, LogOut } 
 import { Link, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 
-export default function AdminSidebar({ adminName = "Alex Morgan", adminRole = "System Admin" }) {
+export default function AdminSidebar({ adminName = "Admin User", adminRole = "System Admin" }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef();
-  const navigate = useNavigate();
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
@@ -27,14 +27,34 @@ export default function AdminSidebar({ adminName = "Alex Morgan", adminRole = "S
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Function to get initials from full name
+  const getInitials = (name) => {
+    if (!name) return 'AU';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+    setIsDropdownOpen(false);
+    navigate('/login'); // Navigate to login page
+  };
+
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
       {/* Logo */}
       <div className="px-8 py-5 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <PawPrint className="w-7 h-7 text-primary" />
-            <span className="text-2xl font-bold text-primary">PetCare</span>
+            <PawPrint className="w-7 h-7 text-green-600" />
+            <span className="text-2xl font-bold text-green-600">PetCare</span>
           </div>
         </div>
       </div>
@@ -69,25 +89,26 @@ export default function AdminSidebar({ adminName = "Alex Morgan", adminRole = "S
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
           <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-            {adminName.split(' ').map(n => n[0]).join('')}
+            {getInitials(adminName)}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-900 truncate">{adminName}</p>
             <p className="text-sm text-gray-500">{adminRole}</p>
           </div>
-          <span className="text-gray-400 hover:text-gray-600 text-xl">⋮</span>
+          <button 
+            className="text-gray-400 hover:text-gray-600 text-xl focus:outline-none"
+            aria-label="More options"
+          >
+            ⋮
+          </button>
         </div>
 
         {/* Dropdown Menu */}
         {isDropdownOpen && (
           <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50">
             <button
-            className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-700 hover:bg-gray-100"
-            onClick={() => {
-                // Perform logout logic here (like clearing tokens if needed)
-                setIsDropdownOpen(false);
-                navigate('/'); // Navigate to home page
-            }}
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-700 hover:bg-gray-100 transition-colors"
             >
               <LogOut className="w-4 h-4 text-red-700" />
               Logout

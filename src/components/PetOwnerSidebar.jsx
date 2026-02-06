@@ -1,9 +1,12 @@
-import React from 'react';
-import { LayoutDashboard, Users, Plus,PawPrint} from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { LayoutDashboard, Users, Plus, PawPrint, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-export default function PetOwnerSidebar({ ownerName = "Alex Johnson", ownerRole = "Pet Owner" }) {
+export default function PetOwnerSidebar({ ownerName = "Pet Owner", ownerRole = "Pet Owner" }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef();
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/pet-owner/dashboard' },
@@ -11,6 +14,35 @@ export default function PetOwnerSidebar({ ownerName = "Alex Johnson", ownerRole 
     { icon: Plus, label: 'Add Pet', path: '/pet-owner/addpet' }
   ];
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!ownerName || ownerName === "Pet Owner") return "PO";
+    
+    const nameParts = ownerName.split(' ');
+    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase();
+    
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle logout
+  const handleLogout = () => {
+    // Clear user data from storage
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+    setIsDropdownOpen(false);
+    navigate('/login'); // Navigate to login page
+  };
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -18,8 +50,8 @@ export default function PetOwnerSidebar({ ownerName = "Alex Johnson", ownerRole 
       <div className="px-8 py-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-                <PawPrint className="w-7 h-7 text-primary" />
-                <span className="text-2xl font-bold text-primary">PetCare</span>
+            <PawPrint className="w-7 h-7 text-green-600" />
+            <span className="text-2xl font-bold text-green-600">PetCare</span>
           </div>
         </div>
       </div>
@@ -48,17 +80,39 @@ export default function PetOwnerSidebar({ ownerName = "Alex Johnson", ownerRole 
         </ul>
       </nav>
 
-      {/* User Profile */}
-      <div className="p-6 border-t border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-            {ownerName.split(' ').map(n => n[0]).join('')}
+      {/* User Profile with Logout Dropdown */}
+      <div className="p-6 border-t border-gray-200 relative" ref={dropdownRef}>
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        >
+          <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+            {getUserInitials()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-900 truncate">{ownerName}</p>
             <p className="text-sm text-gray-500">{ownerRole}</p>
           </div>
+          <button 
+            className="text-gray-400 hover:text-gray-600 text-xl focus:outline-none"
+            aria-label="More options"
+          >
+            ⋮
+          </button>
         </div>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-700 hover:bg-gray-100 transition-colors"
+            >
+              <LogOut className="w-4 h-4 text-red-700" />
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

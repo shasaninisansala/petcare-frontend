@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PawPrint } from 'lucide-react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from 'react-hot-toast';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -11,6 +12,8 @@ export default function RegisterPage() {
   });
 
   const [passwordStrength, setPasswordStrength] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const calculatePasswordStrength = (password) => {
     if (password.length === 0) return '';
@@ -33,8 +36,21 @@ export default function RegisterPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Add your form submission logic here
-    console.log('Form submitted:', formData);
+    
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    // Save form data and navigate to step 2
+    localStorage.setItem('registerStep1', JSON.stringify(formData));
+    navigate('/registerlast');
   };
 
   const getStrengthColor = () => {
@@ -71,7 +87,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Bottom Image Section - No padding, reaches bottom edge */}
+        {/* Bottom Image Section */}
         <div className="relative w-full hidden sm:block">
           <div className="relative">
             <img 
@@ -79,10 +95,8 @@ export default function RegisterPage() {
               alt="Happy family with dog" 
               className="w-full h-64 lg:h-80 object-cover"
             />
-            {/* Green overlay on image */}
             <div className="absolute inset-0 bg-green-600 opacity-40"></div>
             
-            {/* Copyright text on image */}
             <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6">
               <p className="text-xs text-white opacity-90">© 2024 PetCare Inc. All rights reserved.</p>
             </div>
@@ -99,16 +113,15 @@ export default function RegisterPage() {
           </div>
 
           {/* Progress Indicator */}
-          
           <div className="mb-6 sm:mb-8">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-semibold text-green-600">Registration Progress</h3>
-            <span className="text-xs sm:text-sm font-medium text-gray-700">Step 1 of 2</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div className="bg-green-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '50%' }}></div>
-          </div>
-           <p className="text-xs text-gray-500 mt-2">Personal Details</p>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-green-600">Registration Progress</h3>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Step 1 of 2</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="bg-green-500 h-2.5 rounded-full transition-all duration-300" style={{ width: '50%' }}></div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Personal Details</p>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -124,6 +137,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -139,6 +153,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -154,6 +169,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                 required
+                disabled={loading}
               />
               
               {/* Password Strength Indicator */}
@@ -192,24 +208,26 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-sm sm:text-base"
                 required
+                disabled={loading}
               />
             </div>
 
             {/* Submit Button */}
-            <Link
-              to='/registerlast'
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 sm:py-3 px-4 rounded-lg transition duration-200 text-sm sm:text-base"
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 sm:py-3 px-4 rounded-lg transition duration-200 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continue to Step 2
-            </Link>
+            </button>
           </form>
 
           {/* Login Link */}
           <p className="text-center mt-4 sm:mt-6 text-xs sm:text-sm text-gray-600">
             Already have an account?{' '}
-            <a href="/login" className="text-green-600 hover:text-green-700 font-medium">
+            <Link to="/login" className="text-green-600 hover:text-green-700 font-medium">
               Login here
-            </a>
+            </Link>
           </p>
         </div>
       </div>
