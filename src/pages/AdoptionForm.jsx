@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 
 export default function AdoptionForm({ petName = "Cooper", onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
+    fullName: '',
     homeType: '',
     hasFencedYard: '',
     activityLevel: 50,
@@ -28,6 +29,22 @@ export default function AdoptionForm({ petName = "Cooper", onSubmit, onCancel })
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              placeholder="Enter your full name"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
+              required
+            />
+          </div>
+
           {/* Type of Home */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -171,6 +188,7 @@ export default function AdoptionForm({ petName = "Cooper", onSubmit, onCancel })
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
+
         </form>
       </div>
     </div>
