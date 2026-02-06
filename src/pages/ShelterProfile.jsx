@@ -19,35 +19,41 @@ export default function ShelterProfile() {
 
   const [logo, setLogo] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  console.log("PROFILE COMPONENT LOADED");
+
 
   // Fetch shelter info on mount
-  useEffect(() => {
-  const email = localStorage.getItem("email");
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const email = localStorage.getItem("email");
 
-  axios.get(`/api/shelter/profile/email/${email}`)
-    .then((res) => {
+      const res = await axios.get(
+        `http://localhost:8080/api/shelter/profile/email/${email}`
+      );
+
       const data = res.data;
 
+      
       setFormData({
-        shelterName: data.shelterName,
-        contactPhone: data.phone,
-        email: data.email,
-        licenseNo: data.licenseNumber,
-        description: data.description,
-        streetAddress: data.address || "",
-        addressLine2: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        country: "",
+        shelterName: data.shelter_name || "",
+        licenseNo: data.license_number || "",
+        email: data.email || "",
+        contactPhone: data.phone || "",
+        description: data.description || "",
+        address: data.address || "",      
       });
 
-      if (data.profileImage) {
-        setLogoPreview(data.profileImage);
-      }
-    })
-    .catch((err) => console.error(err));
-}, []);   // ✅ no dependency warning
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchProfile();
+}, []);
+
+
+
 
 
 
@@ -64,27 +70,42 @@ export default function ShelterProfile() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      const data = new FormData();
-      data.append("streetAddress", formData.streetAddress);
-      data.append("addressLine2", formData.addressLine2);
-      data.append("city", formData.city);
-      data.append("state", formData.state);
-      data.append("zipCode", formData.zipCode);
-      data.append("country", formData.country);
-      if (logo) data.append("logo", logo);
+const handleSubmit = async () => {
+  try {
+    const email = localStorage.getItem("email");
 
-      await axios.put("/api/shelter/profile/update", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    const data = new FormData();
 
-      alert("Profile updated successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update profile");
-    }
-  };
+    
+    data.append("shelter_name", formData.shelterName);
+    data.append("phone", formData.contactPhone);
+    data.append("email", formData.email);
+    data.append("license_number", formData.licenseNo);
+    data.append("description", formData.description);
+    data.append("address", formData.address);   
+    if (logo) data.append("profile_image", logo); 
+
+    await axios.put(
+      `http://localhost:8080/api/shelter/profile/update/email/${email}`,
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    alert("Profile updated successfully!");
+  } catch (error) {
+    console.error(error);
+    alert("Failed to update profile");
+  }
+};
+
+
+
+ 
+
 
   return (
     <div className="flex-1 bg-gray-50">
