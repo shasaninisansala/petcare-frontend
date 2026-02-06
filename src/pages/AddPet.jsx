@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 export default function AddPetForm() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    shelterId: '',
     petName: '',
     breed: '',
     species: 'Dog',
@@ -89,19 +90,17 @@ const adoptionData = {
       <div className="p-8">
         {/* Breadcrumb */}
         <div className="mb-6 flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/shelter/dashboard" className="hover:text-green-600 transition">
-                Dashboard
-            </Link>
-            <span>/</span>
-
-            <Link to="/shelter/adoption-listings" className="hover:text-green-600 transition">
-                Adoption Listings
-            </Link>
-            <span>/</span>
-
-            <span className="text-gray-900 font-medium">
-                Add New Pet
-            </span>
+          <Link to="/shelter/dashboard" className="hover:text-green-600 transition">
+            Dashboard
+          </Link>
+          <span>/</span>
+          <Link to="/shelter/adoption-listings" className="hover:text-green-600 transition">
+            Adoption Listings
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium">
+            Add New Pet
+          </span>
         </div>
 
         {/* Page Header */}
@@ -112,7 +111,7 @@ const adoptionData = {
           </div>
           <Link to='/shelter/adoption-listings'>
             <button className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
-                Publish Listing
+              Publish Listing
             </button>
           </Link>
         </div>
@@ -120,6 +119,8 @@ const adoptionData = {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Form Section */}
           <div className="lg:col-span-2 space-y-6">
+
+            {/* Basic Information */}
             <div className="bg-white rounded-xl border-2 border-dashed border-blue-200 p-6">
               <div className="flex items-center gap-2 mb-6">
                 <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
@@ -128,7 +129,19 @@ const adoptionData = {
                 <h3 className="text-lg font-bold text-gray-900">Basic Information</h3>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Shelter ID</label>
+                  <input
+                    type="text"
+                    name="shelterId"
+                    value={formData.shelterId}
+                    onChange={handleInputChange}
+                    placeholder="e.g. SH001"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Pet Name</label>
                   <input
@@ -140,6 +153,7 @@ const adoptionData = {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Breed</label>
                   <input
@@ -180,6 +194,7 @@ const adoptionData = {
                     <option>Bird</option>
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
                   <input
@@ -191,6 +206,7 @@ const adoptionData = {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
                   <select
@@ -227,6 +243,7 @@ const adoptionData = {
                   />
                   <span className="text-gray-700 font-medium">Vaccinated</span>
                 </label>
+
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -300,43 +317,35 @@ const adoptionData = {
                     className="w-full h-full object-cover"
                   />
                 </div>
+
                 <div className="p-4">
                   <p className="text-sm text-gray-600 mb-3">
-                    {formData.petName || "Pet"} • {formData.age || "Age"} • {formData.species} • {formData.size}
+                    Shelter: {formData.shelterId || "ID"} • {formData.petName || "Pet"} • {formData.age || "Age"} • {formData.species} • {formData.size}
                   </p>
+
                   <div className="flex gap-2 mb-3">
                     {formData.vaccinated && (
                       <div className="flex-1 text-center py-2 bg-gray-50 rounded">
-                        <div className="w-6 h-6 mx-auto mb-1">
-                          <span className="text-green-600">✓</span>
-                        </div>
-                        <p className="text-xs text-gray-600">Vaccinated</p>
+                        ✓ Vaccinated
                       </div>
                     )}
                     {formData.kidFriendly && (
                       <div className="flex-1 text-center py-2 bg-gray-50 rounded">
-                        <div className="w-6 h-6 mx-auto mb-1">
-                          <span className="text-green-600">✓</span>
-                        </div>
-                        <p className="text-xs text-gray-600">Kid Friendly</p>
+                        ✓ Kid Friendly
                       </div>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 mb-4 line-clamp-2">
+
+                  <p className="text-sm text-gray-700 mb-4">
                     {formData.medicalNotes || "No description yet."}
                   </p>
-                  <p className="text-xs text-green-600 mb-3 cursor-default">Read More →</p>
-                  
-                  {/* SUBMIT BUTTON */}
-                  <button 
-                    onClick={handleSubmit}
-                    className="w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
-                  >
+
+                  <button className="w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
                     Adopt {formData.petName || "Pet"}
-                    <span>→</span>
                   </button>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

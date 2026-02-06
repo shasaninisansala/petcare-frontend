@@ -1,28 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Users, Plus, PawPrint, LogOut } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ShieldCheck, DollarSign, FileText, PawPrint, LogOut } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-export default function PetOwnerSidebar({ ownerName = "Pet Owner", ownerRole = "Pet Owner" }) {
+export default function AdminSidebar({ adminName = "Admin User", adminRole = "System Admin" }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/pet-owner/dashboard' },
-    { icon: Users, label: 'My Pets', path: '/pet-owner/mypets' },
-    { icon: Plus, label: 'Add Pet', path: '/pet-owner/addpet' }
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
+    { icon: ShieldCheck, label: 'Shelter Verification', path: '/admin/shelter-verification' },
+    { icon: DollarSign, label: 'Donations', path: '/admin/donations' },
+    { icon: FileText, label: 'Reports', path: '/admin/reports' }
   ];
-
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    if (!ownerName || ownerName === "Pet Owner") return "PO";
-    
-    const nameParts = ownerName.split(' ');
-    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase();
-    
-    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
-  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,9 +27,20 @@ export default function PetOwnerSidebar({ ownerName = "Pet Owner", ownerRole = "
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Function to get initials from full name
+  const getInitials = (name) => {
+    if (!name) return 'AU';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   // Handle logout
   const handleLogout = () => {
-    // Clear user data from storage
+    // Clear user data from localStorage
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
     setIsDropdownOpen(false);
@@ -47,7 +50,7 @@ export default function PetOwnerSidebar({ ownerName = "Pet Owner", ownerRole = "
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
       {/* Logo */}
-      <div className="px-8 py-6 border-b border-gray-200">
+      <div className="px-8 py-5 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <PawPrint className="w-7 h-7 text-green-600" />
@@ -62,7 +65,6 @@ export default function PetOwnerSidebar({ ownerName = "Pet Owner", ownerRole = "
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-
             return (
               <li key={item.path}>
                 <Link
@@ -80,18 +82,18 @@ export default function PetOwnerSidebar({ ownerName = "Pet Owner", ownerRole = "
         </ul>
       </nav>
 
-      {/* User Profile with Logout Dropdown */}
+      {/* Admin Profile */}
       <div className="p-6 border-t border-gray-200 relative" ref={dropdownRef}>
         <div
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {getUserInitials()}
+          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+            {getInitials(adminName)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900 truncate">{ownerName}</p>
-            <p className="text-sm text-gray-500">{ownerRole}</p>
+            <p className="font-medium text-gray-900 truncate">{adminName}</p>
+            <p className="text-sm text-gray-500">{adminRole}</p>
           </div>
           <button 
             className="text-gray-400 hover:text-gray-600 text-xl focus:outline-none"

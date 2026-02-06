@@ -56,15 +56,49 @@ export default function ShelterRegistrationPopup({ isOpen, onClose, onSubmit }) 
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Shelter registration submitted:', formData);
-    if (onClose) onClose();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const step1 = JSON.parse(localStorage.getItem("registerData"));
+
+  const form = new FormData();
+
+  // Step 1 data
+  form.append("fullName", step1.fullName);
+  form.append("email", step1.email);      
+  form.append("password", step1.password);
+
+  // Step 2 data (map names to backend)
+  form.append("shelterName", formData.shelterName);
+  form.append("licenseNumber", formData.licenseNumber);
+  form.append("phoneNumber", formData.phoneNumber);   
+  form.append("address", formData.address);
+  form.append("description", formData.description);
+
+  // file
+  form.append("document", formData.document);
+
+  try {
+    const response = await fetch("http://localhost:8080/api/shelter/register", {
+      method: "POST",
+      body: form
+    });
+
+    if (response.ok) {
+      localStorage.removeItem("registerData");
       setShowSuccessPopup(true);
-    if (onSubmit) {
-      onSubmit(formData);
+    } else {
+      const text = await response.text();
+      console.error(text);
+      alert("Server error: " + text);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Connection error");
+  }
+};
+
+
 
   const handleCancel = () => {
     setFormData({

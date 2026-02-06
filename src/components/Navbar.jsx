@@ -37,7 +37,7 @@ const Navbar = () => {
           <a href="/donate" className="text-gray-700 hover:text-primary transition-colors font-medium">
             Donate
           </a>
-          <a href="#emergency" className="text-primary font-semibold hover:text-primary-dark transition-colors">
+          <a href="/emergency" className="text-primary font-semibold hover:text-primary-dark transition-colors">
             Emergency
           </a>
           <a href="/breedinfo" className="text-gray-700 hover:text-primary transition-colors font-medium">
