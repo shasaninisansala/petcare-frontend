@@ -19,7 +19,7 @@ export default function DonatePage() {
     const fetchRequests = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:8080/api/donation-requests'); 
+        const response = await axios.get('http://localhost:8084/api/donation-requests'); 
         console.log('Donation requests data:', response.data); // Debug log
         setDonationRequests(response.data);
       } catch (error) {
