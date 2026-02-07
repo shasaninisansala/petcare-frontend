@@ -8,6 +8,7 @@ import { Toaster } from "react-hot-toast";
 import AboutUsPage from "./pages/AboutUs";
 import DonatePage from "./pages/Donation";
 import AdoptionPage from "./pages/Adoption";
+import AdoptionForm from "./pages/AdoptionForm";
 import BreedInformation from "./pages/Breedinfo";
 
 import ShelterLayout from "./components/ShelterLayout";
@@ -44,6 +45,8 @@ function App() {
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/donate" element={<DonatePage />} />
           <Route path="/adopt" element={<AdoptionPage />} />
+                  <Route path="/adoption-form" element={<AdoptionForm />} />
+
           <Route path="/breedinfo" element={<BreedInformation />} />
           <Route path="/emergency" element={<EmergencyVetAssistant />} />
 
