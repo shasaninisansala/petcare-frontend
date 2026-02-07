@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ZoomIn, ZoomOut, RotateCw, Download, X, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 
 const api = axios.create({
@@ -12,16 +13,20 @@ const api = axios.create({
 
 
 export default function VerificationReview() {
-  const [adminFeedback, setAdminFeedback] = useState('');
+  
+  const navigate = useNavigate();
 
-  const { licenseNo } = useParams();
+
+  const { id } = useParams();
+
 const [shelterInfo, setShelterInfo] = useState({});
 
 useEffect(() => {
-  api.get(`/admin/shelter/${licenseNo}`)
-    .then(res => setShelterInfo(res.data))
-    .catch(err => console.error(err));
-}, [licenseNo]);
+  api.get(`/admin/shelter/${id}`)
+  .then(res => setShelterInfo(res.data))
+  .catch(err => console.error(err));
+
+}, [id]);
 
 
     const [checklist, setChecklist] = useState([
@@ -51,13 +56,28 @@ useEffect(() => {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Verification Review: Happy Paws Shelter</h1>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-gray-600">Application ID: #44401</span>
-              <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-medium">
-                Pending Review
-              </span>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+  Verification Review: {shelterInfo.shelterName}
+</h1>
+
+<div className="flex items-center gap-4 text-sm">
+  <span className="text-gray-600">
+    Application ID: #{shelterInfo.id}
+  </span>
+
+  <span
+    className={`px-3 py-1 rounded-full font-medium ${
+      shelterInfo.status === 'PENDING'
+        ? 'bg-orange-100 text-orange-700'
+        : shelterInfo.status === 'APPROVED'
+        ? 'bg-green-100 text-green-700'
+        : 'bg-red-100 text-red-700'
+    }`}
+  >
+    {shelterInfo.status}
+  </span>
+</div>
+
           </div>
         </div>
 
@@ -76,11 +96,11 @@ useEffect(() => {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">shelterName</label>
-                  <p className="text-gray-900 font-medium">{shelterInfo.legalName}</p>
+                  <p className="text-gray-900 font-medium">{shelterInfo.shelterName}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">regId</label>
-                  <p className="text-gray-900 font-medium">{shelterInfo.regNo}</p>
+                  <p className="text-gray-900 font-medium">{shelterInfo.id}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">address</label>
@@ -92,17 +112,19 @@ useEffect(() => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">phone</label>
-                  <p className="text-gray-900 font-medium">{shelterInfo.phone}</p>
+                  <p className="text-gray-900 font-medium">{shelterInfo.phoneNumber}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">licenseNumber</label>
-                  <p className="text-gray-900 font-medium">{shelterInfo.licenseNo}</p>
+                  <p className="text-gray-900 font-medium">{shelterInfo.licenseNumber}</p>
                 </div>
               </div>
 
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-600 mb-2">description</label>
-                <p className="text-gray-700 leading-relaxed">{shelterInfo.mission}</p>
+                <p className="text-gray-700 leading-relaxed">
+  {shelterInfo.description}
+</p>
               </div>
             </div>
 
@@ -129,23 +151,28 @@ useEffect(() => {
               </div>
 
               {/* Document Preview */}
-              <div className="bg-gray-50 rounded-lg p-8 min-h-[500px] flex items-center justify-center border border-gray-200">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-4xl text-gray-400">📄</span>
-                  </div>
-                  <h4 className="text-xl font-bold text-gray-900 mb-2">STATE OPERATING LICENSE</h4>
-                  <p className="text-gray-500 mb-4">Animal Shelter Division</p>
-                </div>
-              </div>
+<iframe
+  src={`http://localhost:8085/api/admin/document/${id}`}
+  className="w-full h-[500px] border rounded-lg"
+/>
+
+
 
               <div className="flex items-center justify-between mt-4 text-sm">
-                <p className="text-gray-600">State_License_3252.pdf (2.4 MB)</p>
-                <button className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium">
-                  <Download className="w-4 h-4" />
-                  Download Original
-                </button>
-              </div>
+  <p className="text-gray-600"></p>
+
+  <a
+    href={`http://localhost:8085/api/admin/document/${id}`}
+    download
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium"
+  >
+    <Download className="w-4 h-4" />
+    Download Original
+  </a>
+</div>
+
             </div>
           </div>
 
@@ -174,27 +201,33 @@ useEffect(() => {
             </div>
 
 
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">Admin Feedback</label>
-                <p className="text-xs text-gray-500 mb-2">Provide a brief approval or reason for rejection.</p>
-                <textarea
-                  value={adminFeedback}
-                  onChange={(e) => setAdminFeedback(e.target.value)}
-                  rows="4"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
-                  placeholder="Enter feedback..."
-                />
-              </div>
+              
 
               <div className="mt-6 space-y-3">
-                <button className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold flex items-center justify-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  Approve Shelter
-                </button>
-                <button className="w-full py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-semibold flex items-center justify-center gap-2">
-                  <X className="w-5 h-5" />
-                  Reject Application
-                </button>
+                <button
+  onClick={() => {
+    api.post(`/admin/approve/${id}`).then(() => {
+      navigate('/admin/shelter-verification');
+    });
+  }}
+  className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold flex items-center justify-center gap-2"
+>
+  <CheckCircle className="w-5 h-5" />
+  Approve Shelter
+</button>
+
+                <button
+  onClick={() => {
+    api.post(`/admin/reject/${id}`).then(() => {
+      navigate('/admin/shelter-verification');
+    });
+  }}
+  className="w-full py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-semibold flex items-center justify-center gap-2"
+>
+  <X className="w-5 h-5" />
+  Reject Application
+</button>
+
               </div>
             </div>
           </div>

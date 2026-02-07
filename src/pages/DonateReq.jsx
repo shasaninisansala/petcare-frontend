@@ -59,7 +59,7 @@ export default function Donations() {
   });
 
   // =========================
-  // FETCH LOGGED-IN SHELTER (FIXED)
+  // FETCH LOGGED-IN SHELTER
   // =========================
   useEffect(() => {
     fetchLoggedInShelter();
@@ -69,59 +69,41 @@ export default function Donations() {
     try {
       setShelterLoading(true);
       
-      // METHOD 1: Get from your actual authentication system
-      // This could be from localStorage, cookies, or an API call
-      
-      // Example 1: From localStorage (if you store it during login)
-      let shelterData = null;
+      // METHOD 1: From localStorage (if stored during login)
       const storedShelter = localStorage.getItem('currentShelter');
       
       if (storedShelter) {
-        shelterData = JSON.parse(storedShelter);
-      } else {
-        // METHOD 2: If you have an API to get current user/shelter
-        try {
-          // Replace with your actual auth API endpoint
-          const token = localStorage.getItem('token');
-          const response = await axios.get('http://localhost:8080/api/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          shelterData = response.data.shelter || response.data;
-          localStorage.setItem('currentShelter', JSON.stringify(shelterData));
-          
-        } catch (authError) {
-          console.log('Auth API not available, prompting for shelter ID');
-          
-          // METHOD 3: Prompt user to enter shelter ID
-          const shelterId = prompt('Please enter your Shelter ID:', '1');
-          if (!shelterId) {
-            alert('Shelter ID is required');
-            return;
-          }
-          
-          // Fetch shelter details by ID
-          try {
-            const shelterResponse = await axios.get(`http://localhost:8080/api/shelters/${shelterId}`);
-            shelterData = shelterResponse.data;
-            localStorage.setItem('currentShelter', JSON.stringify(shelterData));
-          } catch (shelterError) {
-            console.log('Could not fetch shelter details, using entered ID');
-            // Create minimal shelter object with entered ID
-            shelterData = {
-              id: parseInt(shelterId),
-              name: `Shelter #${shelterId}`,
-              registrationNumber: `SHELTER-${shelterId}`
-            };
-            localStorage.setItem('currentShelter', JSON.stringify(shelterData));
-          }
-        }
-      }
-      
-      if (shelterData) {
+        const shelterData = JSON.parse(storedShelter);
         setLoggedInShelter(shelterData);
         
         // Auto-populate request form with shelter info
+        setRequestForm(prev => ({
+          ...prev,
+          shelterId: shelterData.id,
+          shelterName: shelterData.name
+        }));
+        
+        // Fetch data for this shelter
+        fetchAllData(shelterData.id);
+      } else {
+        // METHOD 2: Prompt user for shelter ID
+        const shelterId = prompt('Please enter your Shelter ID:', '1');
+        if (!shelterId) {
+          alert('Shelter ID is required');
+          return;
+        }
+        
+        // Create shelter object with entered ID
+        const shelterData = {
+          id: parseInt(shelterId),
+          name: `Shelter #${shelterId}`,
+          registrationNumber: `SHELTER-${shelterId}`
+        };
+        
+        localStorage.setItem('currentShelter', JSON.stringify(shelterData));
+        setLoggedInShelter(shelterData);
+        
+        // Auto-populate request form
         setRequestForm(prev => ({
           ...prev,
           shelterId: shelterData.id,
@@ -134,27 +116,25 @@ export default function Donations() {
       
     } catch (error) {
       console.error('Error fetching shelter info:', error);
-      alert('Failed to load shelter information. Please refresh the page.');
     } finally {
       setShelterLoading(false);
     }
   };
 
   // =========================
-  // FETCH DATA FOR THIS SHELTER (FIXED WITH STATS)
+  // FETCH DATA FOR THIS SHELTER
   // =========================
   const fetchAllData = async (shelterId) => {
     setIsLoading(true);
     try {
       console.log(`📊 Fetching data for shelter ID: ${shelterId}`);
       
-      // Check if new shelter-specific endpoints are available
-      const endpointsAvailable = await checkShelterEndpointsAvailable(shelterId);
-      
-      if (endpointsAvailable) {
+      // Try shelter-specific endpoints first
+      try {
         // Use new shelter-specific endpoints
         await fetchDataWithShelterEndpoints(shelterId);
-      } else {
+      } catch (error) {
+        console.log('Using fallback filtering');
         // Use fallback method (fetch all and filter)
         await fetchDataAndFilter(shelterId);
       }
@@ -166,45 +146,40 @@ export default function Donations() {
     }
   };
 
-  const checkShelterEndpointsAvailable = async (shelterId) => {
-    try {
-      // Test multiple endpoints
-      await Promise.all([
-        axios.get(`http://localhost:8080/api/donation-requests/shelter/${shelterId}`, { timeout: 2000 }),
-        axios.get(`http://localhost:8080/api/donations/shelter/${shelterId}`, { timeout: 2000 })
-      ]);
-      console.log('✅ Shelter-specific endpoints are available');
-      return true;
-    } catch (error) {
-      console.log('⚠️ Shelter-specific endpoints not available, using fallback filtering');
-      return false;
-    }
-  };
-
   // Method 1: Use new shelter-specific endpoints
   const fetchDataWithShelterEndpoints = async (shelterId) => {
     try {
-      // Fetch shelter-specific data
-      const [donationsRes, requestsRes, totalRes, monthRes] = await Promise.all([
-        axios.get(`http://localhost:8080/api/donations/shelter/${shelterId}`),
-        axios.get(`http://localhost:8080/api/donation-requests/shelter/${shelterId}`),
-        // Try shelter-specific stats endpoints
-        axios.get(`http://localhost:8080/api/donations/stats/shelter/${shelterId}/total`).catch(() => ({ data: 0 })),
-        axios.get(`http://localhost:8080/api/donations/stats/shelter/${shelterId}/this-month`).catch(() => ({ data: 0 }))
+      // Try to fetch shelter-specific data
+      const [donationsRes, requestsRes] = await Promise.all([
+        axios.get(`http://localhost:8084/api/donations/shelter/${shelterId}`),
+        axios.get(`http://localhost:8084/api/donation-requests/shelter/${shelterId}`)
       ]);
       
       setDonations(donationsRes.data);
       setDonationRequests(requestsRes.data);
       
-      // Set shelter-specific stats
-      setShelterTotalReceived(Number(totalRes.data) || 0);
-      setShelterThisMonth(Number(monthRes.data) || 0);
+      // Calculate stats from donations data
+      const total = donationsRes.data.reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthTotal = donationsRes.data.reduce((sum, d) => {
+        if (d.createdAt) {
+          const date = new Date(d.createdAt);
+          if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+            return sum + parseFloat(d.amount || 0);
+          }
+        }
+        return sum;
+      }, 0);
+      
+      setShelterTotalReceived(total);
+      setShelterThisMonth(monthTotal);
       
       // Count active campaigns
       const active = requestsRes.data.filter(req => req.status === 'OPEN').length;
       setActiveCampaigns(active);
       
-      console.log(`✅ Loaded ${donationsRes.data.length} donations and ${requestsRes.data.length} campaigns for shelter ${shelterId}`);
+      console.log(`✅ Loaded ${donationsRes.data.length} donations for shelter ${shelterId}`);
       
     } catch (error) {
       console.error('Error with shelter endpoints:', error);
@@ -218,12 +193,9 @@ export default function Donations() {
       console.log(`🔄 Using fallback filtering for shelter ${shelterId}`);
       
       // Fetch all data
-      const [allDonations, allRequests, totalRes, monthRes] = await Promise.all([
-        axios.get('http://localhost:8080/api/donations'),
-        axios.get('http://localhost:8080/api/donation-requests'),
-        // Use global stats as fallback
-        axios.get('http://localhost:8080/api/donations/stats/total').catch(() => ({ data: 0 })),
-        axios.get('http://localhost:8080/api/donations/stats/this-month').catch(() => ({ data: 0 }))
+      const [allDonations, allRequests] = await Promise.all([
+        axios.get('http://localhost:8084/api/donations'),
+        axios.get('http://localhost:8084/api/donation-requests')
       ]);
       
       // Filter requests by shelter ID
@@ -274,7 +246,7 @@ export default function Donations() {
   };
 
   // =========================
-  // CHANGE SHELTER FUNCTION (NEW)
+  // CHANGE SHELTER FUNCTION
   // =========================
   const changeShelter = () => {
     const newShelterId = prompt('Enter new Shelter ID:', loggedInShelter?.id || '1');
@@ -290,20 +262,14 @@ export default function Donations() {
       registrationNumber: `SHELTER-${newShelterId}`
     };
     
-    // Try to fetch actual shelter details
-    axios.get(`http://localhost:8080/api/shelters/${newShelterId}`)
-      .then(response => {
-        const actualShelter = response.data;
-        localStorage.setItem('currentShelter', JSON.stringify(actualShelter));
-        setLoggedInShelter(actualShelter);
-        fetchAllData(actualShelter.id);
-      })
-      .catch(() => {
-        // Use created shelter object
-        localStorage.setItem('currentShelter', JSON.stringify(newShelter));
-        setLoggedInShelter(newShelter);
-        fetchAllData(newShelter.id);
-      });
+    localStorage.setItem('currentShelter', JSON.stringify(newShelter));
+    setLoggedInShelter(newShelter);
+    setRequestForm(prev => ({
+      ...prev,
+      shelterId: newShelter.id,
+      shelterName: newShelter.name
+    }));
+    fetchAllData(newShelter.id);
   };
 
   // Refresh data
@@ -315,12 +281,241 @@ export default function Donations() {
   };
 
   // =========================
-  // YOUR EXISTING FILE UPLOAD HANDLERS (keep exactly as is)
+  // FILE UPLOAD HANDLERS
   // =========================
-  // [Keep all your existing handlers: handleFileSelect, triggerFileInput, removeImage,
-  //  handleRequestChange, handleUpdateChange, uploadImageToServer, submitRequest,
-  //  submitUpdate, resetRequestForm, resetUpdateForm, selectDonationForUpdate]
+  const handleFileSelect = (e, formType = 'request') => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.match('image.*')) {
+      alert('Please select an image file (JPG, PNG, GIF, etc.)');
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    // Create object URL for preview
+    const imageUrl = URL.createObjectURL(file);
+    
+    if (formType === 'request') {
+      setRequestForm({
+        ...requestForm,
+        imageFile: file,
+        imageUrl: imageUrl
+      });
+    } else {
+      setUpdateForm({
+        ...updateForm,
+        imageFile: file,
+        imageUrl: imageUrl
+      });
+    }
+  };
+
+  const triggerFileInput = (formType = 'request') => {
+    if (formType === 'request') {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const removeImage = (formType = 'request') => {
+    if (formType === 'request') {
+      if (requestForm.imageUrl && requestForm.imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(requestForm.imageUrl);
+      }
+      setRequestForm({
+        ...requestForm,
+        imageFile: null,
+        imageUrl: ''
+      });
+    } else {
+      if (updateForm.imageUrl && updateForm.imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(updateForm.imageUrl);
+      }
+      setUpdateForm({
+        ...updateForm,
+        imageFile: null,
+        imageUrl: ''
+      });
+    }
+  };
+
   // =========================
+  // FORM HANDLERS
+  // =========================
+  const handleRequestChange = (e) =>
+    setRequestForm({ ...requestForm, [e.target.name]: e.target.value });
+  
+  const handleUpdateChange = (e) =>
+    setUpdateForm({ ...updateForm, [e.target.name]: e.target.value });
+
+  // Upload image to server
+  const uploadImageToServer = async (imageFile) => {
+    if (!imageFile) return null;
+
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    try {
+      // You need to implement this endpoint on your backend
+      const response = await axios.post('http://localhost:8084/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data.imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Fallback: Use object URL temporarily
+      return URL.createObjectURL(imageFile);
+    }
+  };
+
+  // Submit new donation request
+  const submitRequest = async (e) => {
+    e.preventDefault();
+    try {
+      // Validate dates
+      if (requestForm.endDate && requestForm.startDate > requestForm.endDate) {
+        alert('End date must be after start date');
+        return;
+      }
+
+      let finalImageUrl = requestForm.imageUrl;
+      
+      // If there's a file, upload it first
+      if (requestForm.imageFile) {
+        const uploadedUrl = await uploadImageToServer(requestForm.imageFile);
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
+        }
+      }
+
+      const payload = {
+        ...requestForm,
+        imageUrl: finalImageUrl,
+        targetAmount: parseFloat(requestForm.targetAmount),
+        currentAmount: parseFloat(requestForm.currentAmount) || 0
+      };
+
+      // Remove the file object before sending
+      delete payload.imageFile;
+
+      const res = await axios.post('http://localhost:8084/api/donation-requests', payload);
+      setDonationRequests([res.data, ...donationRequests]);
+      setShowRequestForm(false);
+      resetRequestForm();
+      alert('Campaign created successfully!');
+      handleRefresh();
+    } catch (error) {
+      console.error('Error creating donation request:', error);
+      alert(`Failed to create campaign: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  // Submit update donation request
+  const submitUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      // Validate dates
+      if (updateForm.endDate && updateForm.startDate > updateForm.endDate) {
+        alert('End date must be after start date');
+        return;
+      }
+
+      let finalImageUrl = updateForm.imageUrl;
+      
+      // If there's a new file, upload it first
+      if (updateForm.imageFile) {
+        const uploadedUrl = await uploadImageToServer(updateForm.imageFile);
+        if (uploadedUrl) {
+          finalImageUrl = uploadedUrl;
+        }
+      }
+
+      const payload = {
+        ...updateForm,
+        imageUrl: finalImageUrl,
+        targetAmount: parseFloat(updateForm.targetAmount),
+        currentAmount: parseFloat(updateForm.currentAmount) || 0
+      };
+
+      // Remove the file object before sending
+      delete payload.imageFile;
+
+      const res = await axios.put(
+        `http://localhost:8084/api/donation-requests/${updateForm.id}`,
+        payload
+      );
+      setDonationRequests(
+        donationRequests.map((d) => (d.id === updateForm.id ? res.data : d))
+      );
+      setShowUpdateForm(false);
+      resetUpdateForm();
+      alert('Campaign updated successfully!');
+      handleRefresh();
+    } catch (error) {
+      console.error('Error updating donation request:', error);
+      alert(`Failed to update campaign: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  // Reset forms
+  const resetRequestForm = () => {
+    setRequestForm({
+      shelterId: loggedInShelter?.id || '',
+      shelterName: loggedInShelter?.name || '',
+      title: '',
+      description: '',
+      imageUrl: '',
+      imageFile: null,
+      targetAmount: '',
+      currentAmount: '0',
+      status: 'OPEN',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: ''
+    });
+  };
+
+  const resetUpdateForm = () => {
+    setUpdateForm({
+      id: '',
+      shelterId: '',
+      shelterName: '',
+      title: '',
+      description: '',
+      imageUrl: '',
+      imageFile: null,
+      targetAmount: '',
+      currentAmount: '',
+      status: 'OPEN',
+      startDate: '',
+      endDate: ''
+    });
+  };
+
+  // Select donation request for update
+  const selectDonationForUpdate = (request) => {
+    setUpdateForm({
+      id: request.id,
+      shelterId: request.shelterId || '',
+      shelterName: request.shelterName || '',
+      title: request.title || '',
+      description: request.description || '',
+      imageUrl: request.imageUrl || '',
+      imageFile: null,
+      targetAmount: request.targetAmount || '',
+      currentAmount: request.currentAmount || '',
+      status: request.status || 'OPEN',
+      startDate: request.startDate?.split('T')[0] || '',
+      endDate: request.endDate?.split('T')[0] || ''
+    });
+  };
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -337,7 +532,7 @@ export default function Donations() {
   );
 
   // =========================
-  // RENDER (UPDATED WITH CHANGE SHELTER BUTTON)
+  // RENDER
   // =========================
   if (shelterLoading) {
     return (
@@ -397,9 +592,6 @@ export default function Donations() {
                       <span className="ml-2 font-medium">{loggedInShelter.registrationNumber}</span>
                     </div>
                   )}
-                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    {donations.length} donations • {donationRequests.length} campaigns
-                  </div>
                 </div>
               </div>
 
@@ -470,10 +662,6 @@ export default function Donations() {
                 <p className="text-xs text-gray-500 mt-1">
                   All donations to your campaigns
                 </p>
-                <div className="mt-2 text-xs">
-                  <span className="text-gray-500">Based on </span>
-                  <span className="font-medium">{donations.length} donations</span>
-                </div>
               </div>
               
               <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
@@ -489,10 +677,6 @@ export default function Donations() {
                 <p className="text-xs text-gray-500 mt-1">
                   Donations this month
                 </p>
-                <div className="mt-2 text-xs">
-                  <span className="text-gray-500">For shelter </span>
-                  <span className="font-medium">#{loggedInShelter.id}</span>
-                </div>
               </div>
               
               <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
@@ -508,14 +692,6 @@ export default function Donations() {
                 <p className="text-xs text-gray-500 mt-1">
                   Total campaigns
                 </p>
-                <div className="flex gap-2 mt-2 text-xs">
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                    {activeCampaigns} Active
-                  </span>
-                  <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                    {donationRequests.length - activeCampaigns} Other
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -632,74 +808,617 @@ export default function Donations() {
                 </div>
               )}
             </div>
-
-            {/* Campaigns Summary */}
-            {donationRequests.length > 0 && (
-              <div className="bg-white rounded-xl border shadow-sm overflow-hidden mt-8">
-                <div className="p-4 md:p-6 border-b">
-                  <h3 className="font-bold text-lg">Your Campaigns</h3>
-                </div>
-                <div className="p-4 md:p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {donationRequests.slice(0, 3).map(campaign => (
-                      <div key={campaign.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-bold text-gray-900 truncate">{campaign.title}</h4>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            campaign.status === 'OPEN' ? 'bg-green-100 text-green-800' :
-                            campaign.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {campaign.status}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">{campaign.description}</p>
-                        <div className="mb-2">
-                          <div className="flex justify-between text-xs text-gray-500 mb-1">
-                            <span>Progress</span>
-                            <span>
-                              {((parseFloat(campaign.currentAmount || 0) / parseFloat(campaign.targetAmount || 1)) * 100).toFixed(1)}%
-                            </span>
-                          </div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-green-500 rounded-full"
-                              style={{ 
-                                width: `${Math.min(
-                                  (parseFloat(campaign.currentAmount || 0) / parseFloat(campaign.targetAmount || 1)) * 100,
-                                  100
-                                )}%` 
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600">${formatCurrency(campaign.currentAmount)}</span>
-                          <span className="text-gray-600">Goal: ${formatCurrency(campaign.targetAmount)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {donationRequests.length > 3 && (
-                    <div className="text-center mt-4">
-                      <button
-                        onClick={() => setShowUpdateForm(true)}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        View all {donationRequests.length} campaigns →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
 
-        {/* [Keep all your existing modals exactly as they are] */}
-        {/* Receipt Modal, Request Donation Modal, Update Donation Modal */}
-        {/* ========================= */}
+        {/* Receipt Modal */}
+        {selectedDonation && (
+          <div className="fixed inset-0 bg-black/30 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-xl w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Donation Receipt</h2>
+                <button
+                  onClick={() => setSelectedDonation(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="font-medium">Donor:</span>
+                  <span>{selectedDonation.donorName || 'Anonymous'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Date:</span>
+                  <span>
+                    {selectedDonation.createdAt ? new Date(selectedDonation.createdAt).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Amount:</span>
+                  <span className="text-green-600 font-semibold">
+                    ${formatCurrency(selectedDonation.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Campaign ID:</span>
+                  <span>{selectedDonation.donationRequestId || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Status:</span>
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    selectedDonation.status === 'SUCCESS' ? 'bg-green-100 text-green-800' :
+                    selectedDonation.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    selectedDonation.status === 'OPEN' ? 'bg-blue-100 text-blue-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {selectedDonation.status}
+                  </span>
+                </div>
+                {selectedDonation.purpose && (
+                  <div className="pt-3 border-t">
+                    <p className="font-medium mb-1">Purpose:</p>
+                    <p className="text-sm text-gray-600">{selectedDonation.purpose}</p>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedDonation(null)}
+                className="mt-6 w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          onChange={(e) => handleFileSelect(e, 'request')}
+        />
+
+        {/* Request Donation Modal */}
+        {showRequestForm && (
+          <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Request Donation</h2>
+                <button
+                  onClick={() => {
+                    setShowRequestForm(false);
+                    resetRequestForm();
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={submitRequest} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Shelter ID *
+                    </label>
+                    <input
+                      name="shelterId"
+                      type="number"
+                      placeholder="e.g., 1"
+                      value={requestForm.shelterId}
+                      onChange={handleRequestChange}
+                      required
+                      min="1"
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Shelter Name *
+                    </label>
+                    <input
+                      name="shelterName"
+                      placeholder="e.g., Safe Valley Shelter"
+                      value={requestForm.shelterName}
+                      onChange={handleRequestChange}
+                      required
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title *
+                  </label>
+                  <input
+                    name="title"
+                    placeholder="e.g., Winter Supplies Drive"
+                    value={requestForm.title}
+                    onChange={handleRequestChange}
+                    required
+                    className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    placeholder="Describe the campaign purpose and goals..."
+                    value={requestForm.description}
+                    onChange={handleRequestChange}
+                    required
+                    rows={3}
+                    className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  />
+                </div>
+
+                {/* Image Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Campaign Image (Optional)
+                  </label>
+                  
+                  {/* Current Preview */}
+                  {requestForm.imageUrl && (
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-600 mb-1">Preview:</p>
+                      <div className="relative">
+                        <img 
+                          src={requestForm.imageUrl} 
+                          alt="Preview" 
+                          className="w-full h-48 object-cover rounded-lg border"
+                          onError={(e) => {
+                            e.target.src = '/images/default-donation.jpg';
+                            e.target.className = 'w-full h-48 object-contain rounded-lg border p-8 bg-gray-100';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage('request')}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {requestForm.imageFile ? `Selected: ${requestForm.imageFile.name}` : 'Image loaded'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      onClick={() => triggerFileInput('request')}
+                      className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-green-500 hover:bg-green-50 transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                        <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600">
+                          {requestForm.imageFile 
+                            ? `Change image (${requestForm.imageFile.name})`
+                            : 'Click to upload image from your device'
+                          }
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Supports JPG, PNG, GIF (Max 5MB)
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Or paste URL below
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Image URL Input (Fallback) */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-px flex-1 bg-gray-300"></div>
+                      <span className="text-xs text-gray-500">OR</span>
+                      <div className="h-px flex-1 bg-gray-300"></div>
+                    </div>
+                    <input
+                      name="imageUrl"
+                      type="url"
+                      placeholder="Paste image URL here instead"
+                      value={requestForm.imageFile ? '' : requestForm.imageUrl}
+                      onChange={handleRequestChange}
+                      disabled={!!requestForm.imageFile}
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {requestForm.imageFile 
+                        ? 'URL input disabled because file is selected'
+                        : 'Enter image URL if you prefer'
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Target Amount *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-gray-500">$</span>
+                      <input
+                        name="targetAmount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="e.g., 50000"
+                        value={requestForm.targetAmount}
+                        onChange={handleRequestChange}
+                        required
+                        className="w-full border p-2.5 pl-8 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date *
+                    </label>
+                    <input
+                      name="startDate"
+                      type="date"
+                      value={requestForm.startDate}
+                      onChange={handleRequestChange}
+                      required
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date (Optional)
+                  </label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    value={requestForm.endDate}
+                    onChange={handleRequestChange}
+                    min={requestForm.startDate || new Date().toISOString().split('T')[0]}
+                    className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRequestForm(false);
+                      resetRequestForm();
+                    }}
+                    className="px-5 py-2.5 border rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Update Donation Modal */}
+        {showUpdateForm && (
+          <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Update Donation Request</h2>
+                <button
+                  onClick={() => {
+                    setShowUpdateForm(false);
+                    resetUpdateForm();
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {!updateForm.id ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <p className="text-gray-600 mb-3">Select a campaign to update:</p>
+                  {donationRequests.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No donation campaigns available
+                    </div>
+                  ) : (
+                    donationRequests.map(req => (
+                      <button
+                        key={req.id}
+                        onClick={() => selectDonationForUpdate(req)}
+                        className="w-full border p-3 rounded-lg hover:bg-gray-100 text-left flex items-center gap-3 transition-colors"
+                      >
+                        <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                          <img 
+                            src={req.imageUrl || '/images/default-donation.jpg'} 
+                            alt={req.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = '/images/default-donation.jpg';
+                              e.target.className = 'w-full h-full object-contain p-1';
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{req.title}</p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {req.shelterName} • ${formatCurrency(req.targetAmount)}
+                          </p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            req.status === 'OPEN' ? 'bg-green-100 text-green-800' :
+                            req.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={submitUpdate} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Shelter ID *
+                      </label>
+                      <input
+                        name="shelterId"
+                        type="number"
+                        value={updateForm.shelterId}
+                        onChange={handleUpdateChange}
+                        required
+                        min="1"
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Shelter Name *
+                      </label>
+                      <input
+                        name="shelterName"
+                        value={updateForm.shelterName}
+                        onChange={handleUpdateChange}
+                        required
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title *
+                    </label>
+                    <input
+                      name="title"
+                      value={updateForm.title}
+                      onChange={handleUpdateChange}
+                      required
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description *
+                    </label>
+                    <textarea
+                      name="description"
+                      value={updateForm.description}
+                      onChange={handleUpdateChange}
+                      required
+                      rows={3}
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+
+                  {/* Image Upload for Update Form */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Campaign Image
+                    </label>
+                    
+                    {/* Current Preview */}
+                    {updateForm.imageUrl && (
+                      <div className="mb-4">
+                        <p className="text-xs text-gray-600 mb-1">
+                          {updateForm.imageFile ? 'New Preview:' : 'Current Image:'}
+                        </p>
+                        <div className="relative">
+                          <img 
+                            src={updateForm.imageUrl} 
+                            alt="Preview" 
+                            className="w-full h-48 object-cover rounded-lg border"
+                            onError={(e) => {
+                              e.target.src = '/images/default-donation.jpg';
+                              e.target.className = 'w-full h-48 object-contain rounded-lg border p-8 bg-gray-100';
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage('update')}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {updateForm.imageFile && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            New image selected: {updateForm.imageFile.name}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Upload Button for Update */}
+                    <div className="mb-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = (e) => handleFileSelect(e, 'update');
+                          input.click();
+                        }}
+                        className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <Camera className="w-5 h-5 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {updateForm.imageFile ? 'Change image' : 'Upload new image'}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Image URL Input for Update */}
+                    <div className="mb-3">
+                      <input
+                        name="imageUrl"
+                        type="url"
+                        placeholder="Or enter new image URL"
+                        value={updateForm.imageFile ? '' : updateForm.imageUrl}
+                        onChange={handleUpdateChange}
+                        disabled={!!updateForm.imageFile}
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:bg-gray-100"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {updateForm.imageFile 
+                          ? 'URL input disabled because file is selected'
+                          : 'Enter new URL or keep existing'
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Target Amount *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3 text-gray-500">$</span>
+                        <input
+                          name="targetAmount"
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={updateForm.targetAmount}
+                          onChange={handleUpdateChange}
+                          required
+                          className="w-full border p-2.5 pl-8 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Current Amount
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3 text-gray-500">$</span>
+                        <input
+                          name="currentAmount"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={updateForm.currentAmount}
+                          onChange={handleUpdateChange}
+                          className="w-full border p-2.5 pl-8 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Status
+                      </label>
+                      <select
+                        name="status"
+                        value={updateForm.status}
+                        onChange={handleUpdateChange}
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="OPEN">OPEN</option>
+                        <option value="COMPLETED">COMPLETED</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Start Date *
+                      </label>
+                      <input
+                        name="startDate"
+                        type="date"
+                        value={updateForm.startDate}
+                        onChange={handleUpdateChange}
+                        required
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        End Date
+                      </label>
+                      <input
+                        name="endDate"
+                        type="date"
+                        value={updateForm.endDate}
+                        onChange={handleUpdateChange}
+                        min={updateForm.startDate || new Date().toISOString().split('T')[0]}
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUpdateForm(false);
+                        resetUpdateForm();
+                      }}
+                      className="px-5 py-2.5 border rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition-colors"
+                    >
+                      Update
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

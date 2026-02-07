@@ -1,61 +1,78 @@
 import React, { useEffect, useState } from 'react';
 import { Users, PawPrint, FileText, Home } from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
 
 const api = axios.create({
   baseURL: 'http://localhost:8085/api'
 });
 
 
+
 export default function AdminDashboard() {
 
-  
+  const navigate = useNavigate();
   const [pendingVerifications, setPendingVerifications] = useState([]);
 
   
-  useEffect(() => {
+  const [statsData, setStatsData] = useState({
+  totalUsers: 0,
+  totalPets: 0,
+  adoptionRequests: 0,
+  verifiedShelters: 0
+});
+const stats = [
+  {
+    label: 'Total Users',
+    value: statsData.totalUsers,
+    icon: Users,
+    iconBg: 'bg-green-50',
+    iconColor: 'text-green-600'
+  },
+  {
+    label: 'Registered Pets',
+    value: statsData.totalPets,
+    icon: PawPrint,
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600'
+  },
+  {
+    label: 'Pending Shelters',
+    value: statsData.pendingShelters,
+    icon: FileText,
+    iconBg: 'bg-orange-50',
+    iconColor: 'text-orange-600'
+  },
+  {
+    label: 'Verified Shelters',
+    value: statsData.verifiedShelters,
+    icon: Home,
+    iconBg: 'bg-purple-50',
+    iconColor: 'text-purple-600'
+  }
+];
+const loadPending = () => {
   api.get('/admin/pending')
-    .then((res) => setPendingVerifications(res.data))
-    .catch((err) => console.error(err));
+    .then(res => {
+      console.log("PENDING DATA:", res.data); // check in console
+      setPendingVerifications(res.data);
+    })
+    .catch(err => console.error(err));
+};
+
+const loadStats = () => {
+  api.get('/admin/dashboard-stats')
+    .then(res => setStatsData(res.data))
+    .catch(err => console.error(err));
+};
+
+useEffect(() => {
+  loadPending();   // 🔥 THIS WAS MISSING
+  loadStats();
 }, []);
 
 
-  const stats = [
-    {
-      label: 'Total Users',
-      value: '1,240',
-      change: '+12%',
-      icon: Users,
-      iconBg: 'bg-green-50',
-      iconColor: 'text-green-600'
-    },
-    {
-      label: 'Registered Pets',
-      value: '850',
-      change: '+5%',
-      icon: PawPrint,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600'
-    },
-    {
-      label: 'Adoption Requests',
-      value: '45',
-      change: '8 pending',
-      icon: FileText,
-      iconBg: 'bg-orange-50',
-      iconColor: 'text-orange-600',
-      changeColor: 'text-orange-600'
-    },
-    {
-      label: 'Verified Shelters',
-      value: '12',
-      change: 'Stable',
-      icon: Home,
-      iconBg: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      changeColor: 'text-purple-600'
-    }
-  ];
 
   const recentActivity = [
     {
@@ -154,12 +171,9 @@ export default function AdminDashboard() {
                         <div className="flex gap-2">
                           <button
   onClick={() => {
-    api.put(`/admin/approve/${shelter.regId}`).then(() => {
-      setPendingVerifications(prev =>
-        prev.filter(s => s.regId !== shelter.regId)
-      );
-    });
-  }}
+  navigate(`/admin/shelter-verification/${shelter.id}`);
+}}
+
   className="px-3 py-1 bg-green-500 text-white rounded text-xs font-medium hover:bg-green-600"
 >
   Approve
