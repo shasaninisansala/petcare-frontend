@@ -22,7 +22,7 @@ export default function DonationMonitoring() {
     
     try {
       // 1. Fetch total donations
-      const totalRes = await fetch('http://localhost:8080/api/donations/stats/total');
+      const totalRes = await fetch('http://localhost:8084/api/donations/stats/total');
       const totalData = await totalRes.json();
       const formattedTotal = Number(totalData).toLocaleString('en-US', {
         style: 'currency',
@@ -31,7 +31,7 @@ export default function DonationMonitoring() {
       setTotalDonations(formattedTotal);
 
       // 2. Fetch this month's total
-      const monthlyRes = await fetch('http://localhost:8080/api/donations/stats/this-month');
+      const monthlyRes = await fetch('http://localhost:8084/api/donations/stats/this-month');
       const monthlyData = await monthlyRes.json();
       const formattedMonthly = Number(monthlyData).toLocaleString('en-US', {
         style: 'currency',
@@ -40,7 +40,7 @@ export default function DonationMonitoring() {
       setMonthlyTotal(formattedMonthly);
 
       // 3. Fetch shelter distribution data
-      const distributionRes = await fetch('http://localhost:8080/api/donations/stats/shelter-distribution');
+      const distributionRes = await fetch('http://localhost:8084/api/donations/stats/shelter-distribution');
       const distributionData = await distributionRes.json();
       console.log('Distribution Data:', distributionData);
 

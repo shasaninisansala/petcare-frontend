@@ -105,7 +105,7 @@ function DonationPaymentForm() {
       // 🔧 STEP 1: Create PaymentIntent via backend
       console.log('📤 Creating PaymentIntent with donationRequestId:', donationRequestId);
       const paymentIntentResponse = await axios.post(
-        'http://localhost:8080/api/payments/create-payment-intent',
+        'http://localhost:8084/api/payments/create-payment-intent',
         {
           amount: Math.round(amount * 100), // Convert dollars to cents
           donationRequestId: donationRequestId, // Use the actual ID
@@ -165,7 +165,7 @@ function DonationPaymentForm() {
         try {
           console.log('💾 Saving donation record to database...');
           const saveResponse = await axios.post(
-            'http://localhost:8080/api/payments/payment-success',
+            'http://localhost:8084/api/payments/payment-success',
             {
               paymentIntentId: paymentIntent.id,
               donationRequestId: donationRequestId, // Use the same ID
