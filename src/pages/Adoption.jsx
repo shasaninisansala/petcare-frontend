@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin } from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/CTAAndFooter';
 
 export default function AdoptionPage() {
-  const [selectedSpecies, setSelectedSpecies] = useState('Dogs');
+  const navigate = useNavigate();
+  const [selectedSpecies, setSelectedSpecies] = useState('Dog');
   const [selectedAgeRange, setSelectedAgeRange] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch pets from backend API
+  // Fetch pets
   useEffect(() => {
     const fetchPets = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/pets'); // replace with your backend endpoint
+        const response = await axios.get('http://localhost:8081/adoption-app/adoptions');
         setPets(response.data);
         setError(null);
       } catch (err) {
@@ -27,7 +29,6 @@ export default function AdoptionPage() {
         setLoading(false);
       }
     };
-
     fetchPets();
   }, []);
 
@@ -37,13 +38,31 @@ export default function AdoptionPage() {
     );
   };
 
-  // Filter pets based on search and filters
+  const ageToRange = (age) => {
+    if (age <= 1) return 'Puppy';
+    if (age <= 3) return 'Young';
+    if (age <= 8) return 'Adult';
+    return 'Senior';
+  };
+
   const filteredPets = pets.filter(pet => {
     const matchesSpecies = pet.species === selectedSpecies;
-    const matchesAge = selectedAgeRange.length === 0 || selectedAgeRange.includes(pet.ageRange);
-    const matchesSearch = pet.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchesAge =
+      selectedAgeRange.length === 0 || selectedAgeRange.includes(ageToRange(pet.age));
+    const matchesSearch = pet.pet_name.toLowerCase().includes(searchText.toLowerCase());
     return matchesSpecies && matchesAge && matchesSearch;
   });
+
+  // Navigate to form page with petName in state
+  const handleCardClick = (pet) => {
+  navigate('/adoption-form', { 
+    state: { 
+      petName: pet.pet_name,
+      adoptionId: pet.adoption_id, // Pass the real ID from the DB
+      shelterId: pet.shelterId      // Pass the real shelter ID
+    } 
+  });
+};
 
   return (
     <>
@@ -55,21 +74,14 @@ export default function AdoptionPage() {
             {/* Filters Sidebar */}
             <div className="w-64 flex-shrink-0">
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-20">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-800">Filters</h3>
-                  <button className="text-sm text-gray-500 hover:text-gray-700">
-                    fitting your search
-                  </button>
-                </div>
-
-                {/* Species Filter */}
+                <h3 className="font-semibold text-gray-800 mb-4">Filters</h3>
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-green-600">🐾</span>
                     <span className="font-medium text-gray-700">Species</span>
                   </div>
                   <div className="space-y-2">
-                    {['Dogs', 'Cats', 'Rabbits'].map((species) => (
+                    {['Dog', 'Cat', 'Rabbit'].map(species => (
                       <button
                         key={species}
                         onClick={() => setSelectedSpecies(species)}
@@ -85,14 +97,13 @@ export default function AdoptionPage() {
                   </div>
                 </div>
 
-                {/* Age Range Filter */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-green-600">○</span>
                     <span className="font-medium text-gray-700">Age Range</span>
                   </div>
                   <div className="space-y-2">
-                    {['Puppy', 'Young', 'Adult', 'Senior'].map((age) => (
+                    {['Puppy', 'Young', 'Adult', 'Senior'].map(age => (
                       <label key={age} className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -108,9 +119,8 @@ export default function AdoptionPage() {
               </div>
             </div>
 
-            {/* Main Content */}
+            {/* Pet Grid */}
             <div className="flex-1">
-              {/* Search Bar */}
               <div className="relative mb-6">
                 <input
                   type="text"
@@ -122,41 +132,44 @@ export default function AdoptionPage() {
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               </div>
 
-              {/* Results Header */}
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
                   {loading ? 'Loading pets...' : `${filteredPets.length} Best Friends Found`}
                 </h2>
                 {error && <p className="text-red-500 mt-2">{error}</p>}
+                {!loading && filteredPets.length === 0 && !error && (
+                  <p className="text-gray-500 mt-2">No pets match your filters.</p>
+                )}
               </div>
 
-              {/* Pet Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {loading && !error && <p>Loading pets...</p>}
-                {!loading && filteredPets.map((pet) => (
-                  <div key={pet.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                {!loading && filteredPets.map(pet => (
+                  <div
+                    key={pet.adoption_id}
+  className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+  onClick={() => handleCardClick(pet)}
+                  >
                     <div className="relative h-48 bg-gray-200">
                       <img
-                        src={pet.image}
-                        alt={pet.name}
+                        src={pet.image_path || '/placeholder.png'}
+                        alt={pet.pet_name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-semibold text-gray-800">{pet.name}</h3>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          pet.gender === 'Male' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-pink-100 text-pink-700'
-                        }`}>
-                          {pet.gender}
+                        <h3 className="text-lg font-semibold text-gray-800">{pet.pet_name}</h3>
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                          {pet.gender || 'Unknown'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">{pet.breed} • {pet.ageRange}</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        {pet.breed} • {ageToRange(pet.age)}
+                      </p>
                       <div className="flex items-center gap-1 text-sm text-gray-500">
                         <MapPin className="w-3 h-3" />
-                        <span>{pet.location}</span>
+                        <span>{pet.shelterId || 'Unknown Shelter'}</span>
                       </div>
                     </div>
                   </div>
