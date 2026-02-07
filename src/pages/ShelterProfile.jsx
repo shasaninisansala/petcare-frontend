@@ -36,13 +36,23 @@ console.log("EMAIL FROM STORAGE:", email);
       const d = res.data;
 
       setFormData({
-        shelterName: d.shelterName || "",
-        contactPhone: d.phone || "",
-        email: d.email || "",
-        licenseNo: d.licenseNumber || "",
-        description: d.description || "",
-        streetAddress: d.address || ""
-      });
+  shelterName: d.shelterName || "",
+  contactPhone: d.phone || "",
+  email: d.email || "",
+  licenseNo: d.licenseNumber || "",
+  description: d.description || "",
+
+  streetAddress: d.streetAddress || "",
+  addressLine2: d.addressLine2 || "",
+  city: d.city || "",
+  state: d.state || "",
+  zipCode: d.zipCode || "",
+  country: d.country || ""
+});
+if (d.profileImage) {
+  setLogoPreview(`data:image/jpeg;base64,${d.profileImage}`);
+}
+
 
       console.log("STATE SET");
     })
@@ -73,30 +83,23 @@ const handleSubmit = async () => {
   try {
     const email = localStorage.getItem("email");
 
-    const fullAddress = `
-      ${formData.streetAddress},
-      ${formData.addressLine2},
-      ${formData.city},
-      ${formData.state},
-      ${formData.zipCode},
-      ${formData.country}
-    `.trim();
+    const form = new FormData();
 
-    const payload = {
-  streetAddress: formData.streetAddress,
-  addressLine2: formData.addressLine2,
-  city: formData.city,
-  state: formData.state,
-  zipCode: formData.zipCode,
-  country: formData.country,
-  profileImage: formData.profileImage
-};
+    form.append("streetAddress", formData.streetAddress);
+    form.append("addressLine2", formData.addressLine2);
+    form.append("city", formData.city);
+    form.append("state", formData.state);
+    form.append("zipCode", formData.zipCode);
+    form.append("country", formData.country);
 
+    if (logo) {
+      form.append("profileImage", logo);   // ✅ REAL FILE
+    }
 
     await axios.put(
       `http://localhost:8085/api/shelter/profile/update/email/${email}`,
-      payload,
-      { headers: { "Content-Type": "application/json" } }
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } }
     );
 
     alert("Profile updated successfully!");
