@@ -24,32 +24,31 @@ export default function ShelterProfile() {
 
   // Fetch shelter info on mount
 useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const email = localStorage.getItem("email");
+  const email = localStorage.getItem("email");
+console.log("EMAIL FROM STORAGE:", email);
 
-      const res = await axios.get(
-        `http://localhost:8080/api/shelter/profile/email/${email}`
-      );
 
-      const data = res.data;
+  axios
+    .get(`http://localhost:8085/api/shelter/profile/email/${email}`)
+    .then(res => {
+      console.log("API RESPONSE:", res.data);
 
-      
+      const d = res.data;
+
       setFormData({
-        shelterName: data.shelter_name || "",
-        licenseNo: data.license_number || "",
-        email: data.email || "",
-        contactPhone: data.phone || "",
-        description: data.description || "",
-        address: data.address || "",      
+        shelterName: d.shelterName || "",
+        contactPhone: d.phone || "",
+        email: d.email || "",
+        licenseNo: d.licenseNumber || "",
+        description: d.description || "",
+        streetAddress: d.address || ""
       });
 
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  fetchProfile();
+      console.log("STATE SET");
+    })
+    .catch(err => {
+      console.error("API ERROR:", err);
+    });
 }, []);
 
 
@@ -74,33 +73,39 @@ const handleSubmit = async () => {
   try {
     const email = localStorage.getItem("email");
 
-    const data = new FormData();
+    const fullAddress = `
+      ${formData.streetAddress},
+      ${formData.addressLine2},
+      ${formData.city},
+      ${formData.state},
+      ${formData.zipCode},
+      ${formData.country}
+    `.trim();
 
-    
-    data.append("shelter_name", formData.shelterName);
-    data.append("phone", formData.contactPhone);
-    data.append("email", formData.email);
-    data.append("license_number", formData.licenseNo);
-    data.append("description", formData.description);
-    data.append("address", formData.address);   
-    if (logo) data.append("profile_image", logo); 
+    const payload = {
+  streetAddress: formData.streetAddress,
+  addressLine2: formData.addressLine2,
+  city: formData.city,
+  state: formData.state,
+  zipCode: formData.zipCode,
+  country: formData.country,
+  profileImage: formData.profileImage
+};
+
 
     await axios.put(
-      `http://localhost:8080/api/shelter/profile/update/email/${email}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
+      `http://localhost:8085/api/shelter/profile/update/email/${email}`,
+      payload,
+      { headers: { "Content-Type": "application/json" } }
     );
 
     alert("Profile updated successfully!");
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     alert("Failed to update profile");
   }
 };
+
 
 
 

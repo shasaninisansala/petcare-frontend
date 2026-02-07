@@ -79,7 +79,7 @@ export default function ShelterRegistrationPopup({ isOpen, onClose, onSubmit }) 
   form.append("document", formData.document);
 
   try {
-    const response = await fetch("http://localhost:8080/api/shelter/register", {
+    const response = await fetch("http://localhost:8085/api/shelter/register", {
       method: "POST",
       body: form
     });
