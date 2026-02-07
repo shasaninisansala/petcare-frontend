@@ -68,7 +68,7 @@ const adoptionData = {
         data.append('image', imageFile);
       }
 
-      const response = await fetch('http://localhost:8081/adoption-app/adoptions', {
+      const response = await fetch('http://localhost:8083/adoption-app/adoptions', {
         method: 'POST',
         body: data,
       });

@@ -19,7 +19,7 @@ export default function AdoptionPage() {
     const fetchPets = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:8081/adoption-app/adoptions');
+        const response = await axios.get('http://localhost:8083/adoption-app/adoptions');
         setPets(response.data);
         setError(null);
       } catch (err) {

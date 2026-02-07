@@ -22,7 +22,7 @@ export default function AdoptionRequests() {
   const fetchRequests = async (id) => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8081/adoption-app/adoption-requests/shelter/${id}`);
+      const response = await fetch(`http://localhost:8083/adoption-app/adoption-requests/shelter/${id}`);
       const data = await response.json();
       setRequests(data);
       setLoading(false);

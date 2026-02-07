@@ -16,7 +16,7 @@ export default function AdoptionListings() {
   const fetchPets = async (id) => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8081/adoption-app/adoptions/shelter/${id}`);
+      const response = await fetch(`http://localhost:8083/adoption-app/adoptions/shelter/${id}`);
       const data = await response.json();
       setPets(data);
       setLoading(false);
@@ -38,7 +38,7 @@ export default function AdoptionListings() {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
-        await fetch(`http://localhost:8081/adoption-app/adoptions/${id}`, {
+        await fetch(`http://localhost:8083/adoption-app/adoptions/${id}`, {
           method: 'DELETE',
         });
         setPets(pets.filter(pet => pet.adoption_id !== id));
@@ -159,7 +159,7 @@ export default function AdoptionListings() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={pet.image_path ? `http://localhost:8081/adoption-app${pet.image_path}` : 'https://via.placeholder.com/100'}
+                            src={pet.image_path ? `http://localhost:8083/adoption-app${pet.image_path}` : 'https://via.placeholder.com/100'}
                             alt={pet.pet_name}
                             className="w-12 h-12 rounded-full object-cover border border-gray-200"
                           />
@@ -208,7 +208,7 @@ export default function AdoptionListings() {
             <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
               <div className="h-48 bg-gray-200 relative">
                  <img 
-                    src={selectedPet.image_path ? `http://localhost:8081/adoption-app${selectedPet.image_path}` : 'https://via.placeholder.com/400'} 
+                    src={selectedPet.image_path ? `http://localhost:8083/adoption-app${selectedPet.image_path}` : 'https://via.placeholder.com/400'} 
                     alt={selectedPet.pet_name} 
                     className="w-full h-full object-cover"
                  />
