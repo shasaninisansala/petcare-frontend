@@ -7,9 +7,8 @@ export default function AdoptionForm() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Extract data from state passed from AdoptionPage
   const petName = location.state?.petName;
-  const shelterId = location.state?.shelterId;
+  const rawShelterId = location.state?.shelterId; 
   const adoptionId = location.state?.adoptionId;
 
   const [formData, setFormData] = useState({
@@ -24,7 +23,6 @@ export default function AdoptionForm() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  // If no adoptionId is present, the user likely refreshed the page or navigated directly
   if (!adoptionId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -32,10 +30,7 @@ export default function AdoptionForm() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold">No Pet Selected</h2>
           <p className="text-gray-600 mb-4">Please select a pet from the adoption gallery first.</p>
-          <button 
-            onClick={() => navigate('/adoptions')}
-            className="bg-green-500 text-white px-6 py-2 rounded-lg"
-          >
+          <button onClick={() => navigate('/adoptions')} className="bg-green-500 text-white px-6 py-2 rounded-lg">
             Go to Gallery
           </button>
         </div>
@@ -47,26 +42,37 @@ export default function AdoptionForm() {
     e.preventDefault();
     setSubmitting(true);
 
+    const formattedShelterId = `REG-00${rawShelterId}`;
+
     const postData = {
       adoption_id: adoptionId,
       pet_name: petName,
-      shelterId: shelterId,
+      shelterId: formattedShelterId, 
       type_of_home: formData.homeType,
       fenced_yard: formData.hasFencedYard === 'yes' ? 'Yes' : 'No',
-      activity_level:
-        formData.activityLevel <= 33 ? 'Low' : formData.activityLevel <= 66 ? 'Medium' : 'High',
+      activity_level: formData.activityLevel <= 33 ? 'Low' : formData.activityLevel <= 66 ? 'Medium' : 'High',
       hours_alone_per_day: parseInt(formData.hoursAlone),
       fullname: formData.fullName,
       contact_no: formData.contactNumber
     };
 
     try {
-      await axios.post(
+      const response = await axios.post(
         'http://localhost:8083/adoption-app/adoption-requests',
         postData
       );
-      alert(`Application submitted successfully for ${petName}!`);
-      navigate('/adopt'); 
+      
+      // We take the request_id returned by your Java Backend (e.g., REQ-001)
+      const generatedId = response.data.request_id;
+
+      // Navigate to Success Page with the real ID and Pet Name
+      navigate('/adoptionSuccess', { 
+        state: { 
+          requestId: generatedId, 
+          petName: petName 
+        } 
+      }); 
+
     } catch (error) {
       console.error('Submission error:', error.response?.data || error.message);
       alert('Failed to submit application: ' + (error.response?.data?.message || 'Server Error'));
@@ -82,7 +88,6 @@ export default function AdoptionForm() {
         <p className="text-gray-600 mb-6">Tell us about where {petName} would be living.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Full Name */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Full Name</label>
             <input
@@ -95,7 +100,6 @@ export default function AdoptionForm() {
             />
           </div>
 
-          {/* Type of Home */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Type of Home</label>
             <select
@@ -112,7 +116,6 @@ export default function AdoptionForm() {
             </select>
           </div>
 
-          {/* Contact Number */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Contact Number</label>
             <input
@@ -125,7 +128,6 @@ export default function AdoptionForm() {
             />
           </div>
 
-          {/* Fenced Yard */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Do you have a fenced yard?</label>
             <div className="grid grid-cols-2 gap-3">
@@ -154,7 +156,6 @@ export default function AdoptionForm() {
             </div>
           </div>
 
-          {/* Activity Level */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Activity Level</label>
             <input
@@ -175,11 +176,8 @@ export default function AdoptionForm() {
             </div>
           </div>
 
-          {/* Hours Alone */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Hours alone per day
-            </label>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Hours alone per day</label>
             <input
               type="number"
               min="0"
@@ -192,7 +190,6 @@ export default function AdoptionForm() {
             />
           </div>
 
-          {/* Agreement */}
           <div className="bg-gray-50 rounded-lg p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -202,16 +199,10 @@ export default function AdoptionForm() {
                 className="w-5 h-5 mt-0.5 rounded border-gray-300 text-green-500 focus:ring-green-500"
                 required
               />
-              <span className="text-sm text-gray-700">
-                I agree to the Adoption Terms.{' '}
-                <button type="button" className="text-green-600 hover:text-green-700 font-medium">
-                  Read Full Agreement
-                </button>
-              </span>
+              <span className="text-sm text-gray-700">I agree to the Adoption Terms.</span>
             </label>
           </div>
 
-          {/* Buttons */}
           <div className="flex gap-4 pt-4">
             <button
               type="button"
@@ -223,7 +214,7 @@ export default function AdoptionForm() {
             <button
               type="submit"
               disabled={!formData.agreeToTerms || submitting}
-              className="flex-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
             >
               {submitting ? 'Submitting...' : 'Submit Application'}
               {!submitting && <ArrowRight className="w-5 h-5" />}

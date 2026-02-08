@@ -15,7 +15,7 @@ export default function AddPetForm() {
     kidFriendly: false,
     medicalNotes: '',
     specialNeeds: '',
-    shelter_id: '' // Now controlled by the user input
+    shelter_id: '' // Kept as empty string
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -37,31 +37,39 @@ export default function AddPetForm() {
     }
   };
 
+  // THE MAIN SAVE LOGIC
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
-    // Simple validation for Shelter ID
+    // VALIDATION: Ensure Shelter ID matches REG-001 format
+    const shelterIdRegex = /^REG-\d{3}$/;
+    
     if (!formData.shelter_id) {
         alert("Please enter a Shelter ID");
+        return;
+    }
+
+    if (!shelterIdRegex.test(formData.shelter_id)) {
+        alert("Invalid Shelter ID format. Please use REG-001 format.");
         return;
     }
 
     try {
       const data = new FormData();
       
-// Change this inside your handleSubmit function
-const adoptionData = {
-  pet_name: formData.petName, // backend uses getPet_name()
-  breed: formData.breed,
-  species: formData.species,
-  age: parseInt(formData.age) || 0,
-  size: formData.size,
-  vaccinated: formData.vaccinated,
-  kid_friendly: formData.kidFriendly, // backend uses isKid_friendly()
-  medical_notes: formData.medicalNotes, // backend uses getMedical_notes()
-  special_needs: formData.specialNeeds, // backend uses getSpecial_needs()
-  shelterId: parseInt(formData.shelter_id) // ensure this matches your Entity's @Column
-};
+      const adoptionData = {
+        pet_name: formData.petName,
+        breed: formData.breed,
+        species: formData.species,
+        age: parseInt(formData.age) || 0,
+        size: formData.size,
+        vaccinated: formData.vaccinated,
+        kid_friendly: formData.kidFriendly,
+        medical_notes: formData.medicalNotes,
+        special_needs: formData.specialNeeds,
+        shelterId: formData.shelter_id 
+      };
+      
       data.append('adoption', JSON.stringify(adoptionData));
       
       if (imageFile) {
@@ -109,11 +117,13 @@ const adoptionData = {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">List a Pet for Adoption</h2>
             <p className="text-gray-600">Showcase a new companion to potential loving families.</p>
           </div>
-          <Link to='/shelter/adoption-listings'>
-            <button className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
-              Publish Listing
-            </button>
-          </Link>
+          {/* Header button triggers validation and submit */}
+          <button 
+            onClick={handleSubmit}
+            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+          >
+            Publish Listing
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -130,18 +140,6 @@ const adoptionData = {
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shelter ID</label>
-                  <input
-                    type="text"
-                    name="shelterId"
-                    value={formData.shelterId}
-                    onChange={handleInputChange}
-                    placeholder="e.g. SH001"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Pet Name</label>
                   <input
@@ -167,16 +165,16 @@ const adoptionData = {
                 </div>
               </div>
 
-              {/* Added Shelter ID Field */}
+              {/* Shelter ID Field with Pattern Hint */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="col-span-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Shelter ID</label>
                   <input
-                    type="number"
+                    type="text"
                     name="shelter_id"
                     value={formData.shelter_id}
                     onChange={handleInputChange}
-                    placeholder="ID"
+                    placeholder="REG-001"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -231,54 +229,18 @@ const adoptionData = {
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">Health Information</h3>
               </div>
-
               <div className="flex gap-6 mb-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="vaccinated"
-                    checked={formData.vaccinated}
-                    onChange={handleInputChange}
-                    className="w-5 h-5 rounded border-gray-300 text-green-500 focus:ring-green-500"
-                  />
+                  <input type="checkbox" name="vaccinated" checked={formData.vaccinated} onChange={handleInputChange} className="w-5 h-5 accent-green-500" />
                   <span className="text-gray-700 font-medium">Vaccinated</span>
                 </label>
-
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="kidFriendly"
-                    checked={formData.kidFriendly}
-                    onChange={handleInputChange}
-                    className="w-5 h-5 rounded border-gray-300 text-green-500 focus:ring-green-500"
-                  />
+                  <input type="checkbox" name="kidFriendly" checked={formData.kidFriendly} onChange={handleInputChange} className="w-5 h-5 accent-green-500" />
                   <span className="text-gray-700 font-medium">Kid Friendly</span>
                 </label>
               </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Medical Notes</label>
-                <textarea
-                  name="medicalNotes"
-                  value={formData.medicalNotes}
-                  onChange={handleInputChange}
-                  placeholder="Any relevant medical history..."
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Special Needs</label>
-                <textarea
-                  name="specialNeeds"
-                  value={formData.specialNeeds}
-                  onChange={handleInputChange}
-                  placeholder="Behavioral or physical special care requirements..."
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                />
-              </div>
+              <textarea name="medicalNotes" value={formData.medicalNotes} onChange={handleInputChange} placeholder="Medical Notes" rows="3" className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 resize-none" />
+              <textarea name="specialNeeds" value={formData.specialNeeds} onChange={handleInputChange} placeholder="Special Needs" rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 resize-none" />
             </div>
 
             {/* Pet Media */}
@@ -289,13 +251,11 @@ const adoptionData = {
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">Pet Media</h3>
               </div>
-
               <label className="block rounded-lg p-8 text-center hover:border-green-500 transition-colors cursor-pointer border-2 border-transparent">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Upload className="w-8 h-8 text-gray-400" />
                 </div>
                 <p className="text-gray-700 font-medium mb-1">Add Image</p>
-                <p className="text-sm text-gray-500">Images/jpeg,png,jpg,gif</p>
                 <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
               </label>
             </div>
@@ -320,32 +280,27 @@ const adoptionData = {
 
                 <div className="p-4">
                   <p className="text-sm text-gray-600 mb-3">
-                    Shelter: {formData.shelterId || "ID"} • {formData.petName || "Pet"} • {formData.age || "Age"} • {formData.species} • {formData.size}
+                    Shelter: {formData.shelter_id || "ID"} • {formData.petName || "Pet"} • {formData.age || "Age"} • {formData.species} • {formData.size}
                   </p>
 
                   <div className="flex gap-2 mb-3">
-                    {formData.vaccinated && (
-                      <div className="flex-1 text-center py-2 bg-gray-50 rounded">
-                        ✓ Vaccinated
-                      </div>
-                    )}
-                    {formData.kidFriendly && (
-                      <div className="flex-1 text-center py-2 bg-gray-50 rounded">
-                        ✓ Kid Friendly
-                      </div>
-                    )}
+                    {formData.vaccinated && <div className="flex-1 text-center py-2 bg-gray-50 rounded">✓ Vaccinated</div>}
+                    {formData.kidFriendly && <div className="flex-1 text-center py-2 bg-gray-50 rounded">✓ Kid Friendly</div>}
                   </div>
 
                   <p className="text-sm text-gray-700 mb-4">
                     {formData.medicalNotes || "No description yet."}
                   </p>
 
-                  <button className="w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+                  <button 
+                    type="button" 
+                    onClick={handleSubmit}
+                    className="w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium shadow-sm"
+                  >
                     Adopt {formData.petName || "Pet"}
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
