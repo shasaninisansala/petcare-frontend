@@ -166,7 +166,7 @@ export default function Donations() {
         axios.get('http://localhost:8084/api/donation-requests')
       ]);
       
-      // Filter requests by shelter ID
+      // Filter requests by shelter ID - now comparing strings
       const shelterRequests = allRequests.data.filter(req => 
         req.shelterId === shelterId || String(req.shelterId) === String(shelterId)
       );
@@ -214,7 +214,7 @@ export default function Donations() {
   };
 
   // =========================
-  // SET SHELTER FUNCTION
+  // SET SHELTER FUNCTION - UPDATED FOR STRING IDs
   // =========================
   const setShelter = (shelterId) => {
     if (!shelterId || shelterId.trim() === '') {
@@ -222,17 +222,14 @@ export default function Donations() {
       return false;
     }
 
-    const id = parseInt(shelterId);
-    if (isNaN(id) || id <= 0) {
-      alert('Please enter a valid numeric Shelter ID');
-      return false;
-    }
-
+    // Remove any leading/trailing whitespace and convert to uppercase for consistency
+    const id = shelterId.trim().toUpperCase();
+    
     // Create shelter object with entered ID
     const shelterData = {
-      id: id,
-      name: `Shelter #${id}`,
-      registrationNumber: `SHELTER-${id}`
+      id: id, // Now a string like "REG01"
+      name: `Shelter ${id}`, // Changed from "Shelter #" to "Shelter REG01"
+      registrationNumber: id // Use the ID as registration number
     };
     
     localStorage.setItem('currentShelter', JSON.stringify(shelterData));
@@ -252,7 +249,7 @@ export default function Donations() {
   };
 
   // =========================
-  // CHANGE SHELTER FUNCTION
+  // CHANGE SHELTER FUNCTION - UPDATED
   // =========================
   const changeShelter = () => {
     if (!loggedInShelter) {
@@ -260,7 +257,7 @@ export default function Donations() {
       return;
     }
     
-    const newShelterId = prompt('Enter new Shelter ID:', loggedInShelter?.id || '');
+    const newShelterId = prompt('Enter new Shelter ID (e.g., REG01):', loggedInShelter?.id || '');
     if (!newShelterId) return;
     
     if (setShelter(newShelterId)) {
@@ -521,7 +518,7 @@ export default function Donations() {
   );
 
   // =========================
-  // SHELTER INPUT MODAL
+  // SHELTER INPUT MODAL - UPDATED FOR STRING IDs
   // =========================
   const ShelterInputModal = () => (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
@@ -533,6 +530,8 @@ export default function Donations() {
         
         <p className="text-gray-600 mb-6">
           Please enter your Shelter ID to view and manage your donation data.
+          <br />
+          <span className="text-sm text-gray-500">Example: REG01, SHELTER001, ABC123</span>
         </p>
         
         <div className="space-y-4">
@@ -541,10 +540,9 @@ export default function Donations() {
               Shelter ID
             </label>
             <input
-              type="number"
-              min="1"
-              placeholder="Enter Shelter ID (e.g., 1)"
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              type="text"
+              placeholder="Enter Shelter ID (e.g., REG01)"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent uppercase"
               id="shelterIdInput"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
@@ -553,6 +551,9 @@ export default function Donations() {
                 }
               }}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter your alphanumeric Shelter ID (e.g., REG01, SHELTER001)
+            </p>
           </div>
           
           <div className="flex gap-3 pt-2">
@@ -574,6 +575,39 @@ export default function Donations() {
             >
               Cancel
             </button>
+          </div>
+          
+          <div className="pt-4 border-t">
+            <p className="text-sm text-gray-600 mb-2">Common Shelter ID formats:</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => {
+                  const input = document.getElementById('shelterIdInput');
+                  input.value = 'REG01';
+                }}
+                className="text-xs border px-2 py-1 rounded hover:bg-gray-50"
+              >
+                REG01
+              </button>
+              <button
+                onClick={() => {
+                  const input = document.getElementById('shelterIdInput');
+                  input.value = 'SHELTER001';
+                }}
+                className="text-xs border px-2 py-1 rounded hover:bg-gray-50"
+              >
+                SHELTER001
+              </button>
+              <button
+                onClick={() => {
+                  const input = document.getElementById('shelterIdInput');
+                  input.value = 'ABC123';
+                }}
+                className="text-xs border px-2 py-1 rounded hover:bg-gray-50"
+              >
+                ABC123
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -602,15 +636,10 @@ export default function Donations() {
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div>
-                      <span className="text-gray-500">Shelter ID:</span>
-                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">#{loggedInShelter.id}</span>
+                      <span className="text-gray-500">Reg No:</span>
+                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">{loggedInShelter.id}</span>
                     </div>
-                    {loggedInShelter.registrationNumber && (
-                      <div>
-                        <span className="text-gray-500">Reg No:</span>
-                        <span className="ml-2 font-medium">{loggedInShelter.registrationNumber}</span>
-                      </div>
-                    )}
+                   
                   </div>
                 </div>
 
@@ -629,7 +658,7 @@ export default function Donations() {
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
                   >
                     <Building className="w-4 h-4" />
-                    {loggedInShelter ? 'Change Shelter' : 'Enter Shelter ID'}
+                    Change Shelter
                   </button>
                   
                   <button 
@@ -687,13 +716,10 @@ export default function Donations() {
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div>
-                      <span className="text-gray-500">Shelter ID:</span>
+                      <span className="text-gray-500">Reg No:</span>
                       <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded text-gray-400">Not Selected</span>
                     </div>
-                    <div>
-                      <span className="text-gray-500">Reg No:</span>
-                      <span className="ml-2 font-medium text-gray-400">SHELTER-XXX</span>
-                    </div>
+                    
                   </div>
                 </div>
 
@@ -848,6 +874,8 @@ export default function Donations() {
                     <p className="text-lg font-medium mb-3">No Shelter Selected</p>
                     <p className="text-sm text-gray-600 mb-6 max-w-md">
                       Enter your Shelter ID to view and manage your donation campaigns and history.
+                      <br />
+                      <span className="text-xs text-gray-500">Example IDs: REG01, SHELTER001, ABC123</span>
                     </p>
                     <button
                       onClick={() => setShowShelterInput(true)}
@@ -1060,14 +1088,16 @@ export default function Donations() {
                     </label>
                     <input
                       name="shelterId"
-                      type="number"
-                      placeholder="e.g., 1"
+                      type="text"
+                      placeholder="e.g., REG01"
                       value={requestForm.shelterId}
                       onChange={handleRequestChange}
                       required
-                      min="1"
-                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent uppercase"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter alphanumeric Shelter ID (e.g., REG01, SHELTER001)
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1338,12 +1368,11 @@ export default function Donations() {
                       </label>
                       <input
                         name="shelterId"
-                        type="number"
+                        type="text"
                         value={updateForm.shelterId}
                         onChange={handleUpdateChange}
                         required
-                        min="1"
-                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
                       />
                     </div>
                     <div>
