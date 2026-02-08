@@ -14,20 +14,19 @@ export default function Donations() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
 
-  // Donation Requests and Donations
+  // Donation Requests and Donations - Start empty
   const [donationRequests, setDonationRequests] = useState([]);
   const [donations, setDonations] = useState([]);
 
-  // Logged-in shelter info
+  // Logged-in shelter info - Start as null
   const [loggedInShelter, setLoggedInShelter] = useState(null);
-  const [shelterLoading, setShelterLoading] = useState(true);
 
   // Stats for this shelter
   const [shelterTotalReceived, setShelterTotalReceived] = useState(0);
   const [shelterThisMonth, setShelterThisMonth] = useState(0);
   const [activeCampaigns, setActiveCampaigns] = useState(0);
 
-  // Request form state - Auto-populate with shelter info
+  // Request form state
   const [requestForm, setRequestForm] = useState({
     shelterId: '',
     shelterName: '',
@@ -58,68 +57,26 @@ export default function Donations() {
     endDate: ''
   });
 
+  // State to control showing shelter ID input
+  const [showShelterInput, setShowShelterInput] = useState(false);
+
   // =========================
-  // FETCH LOGGED-IN SHELTER
+  // INITIAL LOAD - NO DATA
   // =========================
   useEffect(() => {
-    fetchLoggedInShelter();
+    // Clear any stored shelter data to ensure fresh start
+    localStorage.removeItem('currentShelter');
+    
+    // Reset all data
+    setDonations([]);
+    setDonationRequests([]);
+    setLoggedInShelter(null);
+    setShelterTotalReceived(0);
+    setShelterThisMonth(0);
+    setActiveCampaigns(0);
+    
+    console.log('📭 Page loaded with empty state');
   }, []);
-
-  const fetchLoggedInShelter = async () => {
-    try {
-      setShelterLoading(true);
-      
-      // METHOD 1: From localStorage (if stored during login)
-      const storedShelter = localStorage.getItem('currentShelter');
-      
-      if (storedShelter) {
-        const shelterData = JSON.parse(storedShelter);
-        setLoggedInShelter(shelterData);
-        
-        // Auto-populate request form with shelter info
-        setRequestForm(prev => ({
-          ...prev,
-          shelterId: shelterData.id,
-          shelterName: shelterData.name
-        }));
-        
-        // Fetch data for this shelter
-        fetchAllData(shelterData.id);
-      } else {
-        // METHOD 2: Prompt user for shelter ID
-        const shelterId = prompt('Please enter your Shelter ID:', '1');
-        if (!shelterId) {
-          alert('Shelter ID is required');
-          return;
-        }
-        
-        // Create shelter object with entered ID
-        const shelterData = {
-          id: parseInt(shelterId),
-          name: `Shelter #${shelterId}`,
-          registrationNumber: `SHELTER-${shelterId}`
-        };
-        
-        localStorage.setItem('currentShelter', JSON.stringify(shelterData));
-        setLoggedInShelter(shelterData);
-        
-        // Auto-populate request form
-        setRequestForm(prev => ({
-          ...prev,
-          shelterId: shelterData.id,
-          shelterName: shelterData.name
-        }));
-        
-        // Fetch data for this shelter
-        fetchAllData(shelterData.id);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching shelter info:', error);
-    } finally {
-      setShelterLoading(false);
-    }
-  };
 
   // =========================
   // FETCH DATA FOR THIS SHELTER
@@ -129,6 +86,13 @@ export default function Donations() {
     try {
       console.log(`📊 Fetching data for shelter ID: ${shelterId}`);
       
+      // Clear previous data first
+      setDonations([]);
+      setDonationRequests([]);
+      setShelterTotalReceived(0);
+      setShelterThisMonth(0);
+      setActiveCampaigns(0);
+
       // Try shelter-specific endpoints first
       try {
         // Use new shelter-specific endpoints
@@ -141,6 +105,10 @@ export default function Donations() {
       
     } catch (error) {
       console.error('Error fetching shelter data:', error);
+      // Don't show error if no data exists yet
+      if (error.response?.status !== 404) {
+        alert(`Error fetching data: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -155,14 +123,14 @@ export default function Donations() {
         axios.get(`http://localhost:8084/api/donation-requests/shelter/${shelterId}`)
       ]);
       
-      setDonations(donationsRes.data);
-      setDonationRequests(requestsRes.data);
+      setDonations(donationsRes.data || []);
+      setDonationRequests(requestsRes.data || []);
       
       // Calculate stats from donations data
-      const total = donationsRes.data.reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+      const total = (donationsRes.data || []).reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
-      const monthTotal = donationsRes.data.reduce((sum, d) => {
+      const monthTotal = (donationsRes.data || []).reduce((sum, d) => {
         if (d.createdAt) {
           const date = new Date(d.createdAt);
           if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
@@ -176,10 +144,10 @@ export default function Donations() {
       setShelterThisMonth(monthTotal);
       
       // Count active campaigns
-      const active = requestsRes.data.filter(req => req.status === 'OPEN').length;
+      const active = (requestsRes.data || []).filter(req => req.status === 'OPEN').length;
       setActiveCampaigns(active);
       
-      console.log(`✅ Loaded ${donationsRes.data.length} donations for shelter ${shelterId}`);
+      console.log(`✅ Loaded ${(donationsRes.data || []).length} donations for shelter ${shelterId}`);
       
     } catch (error) {
       console.error('Error with shelter endpoints:', error);
@@ -246,30 +214,59 @@ export default function Donations() {
   };
 
   // =========================
+  // SET SHELTER FUNCTION
+  // =========================
+  const setShelter = (shelterId) => {
+    if (!shelterId || shelterId.trim() === '') {
+      alert('Please enter a valid Shelter ID');
+      return false;
+    }
+
+    const id = parseInt(shelterId);
+    if (isNaN(id) || id <= 0) {
+      alert('Please enter a valid numeric Shelter ID');
+      return false;
+    }
+
+    // Create shelter object with entered ID
+    const shelterData = {
+      id: id,
+      name: `Shelter #${id}`,
+      registrationNumber: `SHELTER-${id}`
+    };
+    
+    localStorage.setItem('currentShelter', JSON.stringify(shelterData));
+    setLoggedInShelter(shelterData);
+    setShowShelterInput(false);
+    
+    // Auto-populate request form
+    setRequestForm(prev => ({
+      ...prev,
+      shelterId: shelterData.id,
+      shelterName: shelterData.name
+    }));
+    
+    // Fetch data for this shelter
+    fetchAllData(shelterData.id);
+    return true;
+  };
+
+  // =========================
   // CHANGE SHELTER FUNCTION
   // =========================
   const changeShelter = () => {
-    const newShelterId = prompt('Enter new Shelter ID:', loggedInShelter?.id || '1');
+    if (!loggedInShelter) {
+      setShowShelterInput(true);
+      return;
+    }
+    
+    const newShelterId = prompt('Enter new Shelter ID:', loggedInShelter?.id || '');
     if (!newShelterId) return;
     
-    // Clear current shelter data
-    localStorage.removeItem('currentShelter');
-    
-    // Create new shelter object
-    const newShelter = {
-      id: parseInt(newShelterId),
-      name: `Shelter #${newShelterId}`,
-      registrationNumber: `SHELTER-${newShelterId}`
-    };
-    
-    localStorage.setItem('currentShelter', JSON.stringify(newShelter));
-    setLoggedInShelter(newShelter);
-    setRequestForm(prev => ({
-      ...prev,
-      shelterId: newShelter.id,
-      shelterName: newShelter.name
-    }));
-    fetchAllData(newShelter.id);
+    if (setShelter(newShelterId)) {
+      // Reset search query
+      setSearchQuery('');
+    }
   };
 
   // Refresh data
@@ -362,7 +359,6 @@ export default function Donations() {
     formData.append('image', imageFile);
 
     try {
-      // You need to implement this endpoint on your backend
       const response = await axios.post('http://localhost:8084/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -371,7 +367,6 @@ export default function Donations() {
       return response.data.imageUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      // Fallback: Use object URL temporarily
       return URL.createObjectURL(imageFile);
     }
   };
@@ -380,7 +375,6 @@ export default function Donations() {
   const submitRequest = async (e) => {
     e.preventDefault();
     try {
-      // Validate dates
       if (requestForm.endDate && requestForm.startDate > requestForm.endDate) {
         alert('End date must be after start date');
         return;
@@ -388,7 +382,6 @@ export default function Donations() {
 
       let finalImageUrl = requestForm.imageUrl;
       
-      // If there's a file, upload it first
       if (requestForm.imageFile) {
         const uploadedUrl = await uploadImageToServer(requestForm.imageFile);
         if (uploadedUrl) {
@@ -403,7 +396,6 @@ export default function Donations() {
         currentAmount: parseFloat(requestForm.currentAmount) || 0
       };
 
-      // Remove the file object before sending
       delete payload.imageFile;
 
       const res = await axios.post('http://localhost:8084/api/donation-requests', payload);
@@ -422,7 +414,6 @@ export default function Donations() {
   const submitUpdate = async (e) => {
     e.preventDefault();
     try {
-      // Validate dates
       if (updateForm.endDate && updateForm.startDate > updateForm.endDate) {
         alert('End date must be after start date');
         return;
@@ -430,7 +421,6 @@ export default function Donations() {
 
       let finalImageUrl = updateForm.imageUrl;
       
-      // If there's a new file, upload it first
       if (updateForm.imageFile) {
         const uploadedUrl = await uploadImageToServer(updateForm.imageFile);
         if (uploadedUrl) {
@@ -445,7 +435,6 @@ export default function Donations() {
         currentAmount: parseFloat(updateForm.currentAmount) || 0
       };
 
-      // Remove the file object before sending
       delete payload.imageFile;
 
       const res = await axios.put(
@@ -532,39 +521,68 @@ export default function Donations() {
   );
 
   // =========================
-  // RENDER
+  // SHELTER INPUT MODAL
   // =========================
-  if (shelterLoading) {
-    return (
-      <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading shelter information...</p>
+  const ShelterInputModal = () => (
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+      <div className="bg-white p-6 rounded-xl w-full max-w-md">
+        <div className="flex items-center gap-3 mb-4">
+          <Building className="w-8 h-8 text-green-500" />
+          <h2 className="text-xl font-bold text-gray-900">Enter Shelter ID</h2>
+        </div>
+        
+        <p className="text-gray-600 mb-6">
+          Please enter your Shelter ID to view and manage your donation data.
+        </p>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Shelter ID
+            </label>
+            <input
+              type="number"
+              min="1"
+              placeholder="Enter Shelter ID (e.g., 1)"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              id="shelterIdInput"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  const input = document.getElementById('shelterIdInput');
+                  setShelter(input.value);
+                }
+              }}
+            />
+          </div>
+          
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                const input = document.getElementById('shelterIdInput');
+                setShelter(input.value);
+              }}
+              className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 font-medium transition-colors"
+            >
+              Continue
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowShelterInput(false);
+              }}
+              className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!loggedInShelter) {
-    return (
-      <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md p-8 bg-white rounded-xl border shadow-sm">
-          <Building className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Shelter Access Required</h3>
-          <p className="text-gray-600 mb-6">
-            Please login as a shelter to access donation management.
-          </p>
-          <button
-            onClick={fetchLoggedInShelter}
-            className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // =========================
+  // RENDER - FULL INTERFACE WITH EMPTY DATA
+  // =========================
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
       <div className="p-4 md:p-8">
@@ -572,73 +590,161 @@ export default function Donations() {
         {/* Header with Shelter Info */}
         <div className="mb-6 md:mb-8">
           <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm mb-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Building className="w-8 h-8 text-green-500" />
-                  <div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
-                    <p className="text-sm text-gray-600">Shelter Dashboard</p>
+            {loggedInShelter ? (
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Building className="w-8 h-8 text-green-500" />
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
+                      <p className="text-sm text-gray-600">Shelter Dashboard</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                    <div>
+                      <span className="text-gray-500">Shelter ID:</span>
+                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">#{loggedInShelter.id}</span>
+                    </div>
+                    {loggedInShelter.registrationNumber && (
+                      <div>
+                        <span className="text-gray-500">Reg No:</span>
+                        <span className="ml-2 font-medium">{loggedInShelter.registrationNumber}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-4 mt-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">Shelter ID:</span>
-                    <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">#{loggedInShelter.id}</span>
+
+                <div className="flex flex-wrap gap-2 md:gap-3">
+                  <button 
+                    onClick={handleRefresh}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    {isLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                  
+                  <button 
+                    onClick={changeShelter}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                  >
+                    <Building className="w-4 h-4" />
+                    {loggedInShelter ? 'Change Shelter' : 'Enter Shelter ID'}
+                  </button>
+                  
+                  <button 
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                    onClick={() => {
+                      if (!loggedInShelter) {
+                        setShowShelterInput(true);
+                      } else {
+                        alert('Export functionality coming soon!');
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!loggedInShelter) {
+                        setShowShelterInput(true);
+                      } else {
+                        setShowRequestForm(true);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    New Campaign
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!loggedInShelter) {
+                        setShowShelterInput(true);
+                      } else {
+                        setShowUpdateForm(true);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Update Campaign
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Building className="w-8 h-8 text-gray-400" />
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Donation Management</h2>
+                      <p className="text-sm text-gray-600">Shelter Dashboard</p>
+                    </div>
                   </div>
-                  {loggedInShelter.registrationNumber && (
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                    <div>
+                      <span className="text-gray-500">Shelter ID:</span>
+                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded text-gray-400">Not Selected</span>
+                    </div>
                     <div>
                       <span className="text-gray-500">Reg No:</span>
-                      <span className="ml-2 font-medium">{loggedInShelter.registrationNumber}</span>
+                      <span className="ml-2 font-medium text-gray-400">SHELTER-XXX</span>
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 md:gap-3">
+                  <button 
+                    onClick={() => setShowShelterInput(true)}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Refresh
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowShelterInput(true)}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                  >
+                    <Building className="w-4 h-4" />
+                    Enter Shelter ID
+                  </button>
+                  
+                  <button 
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                    onClick={() => setShowShelterInput(true)}
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+
+                  <button
+                    onClick={() => setShowShelterInput(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    New Campaign
+                  </button>
+
+                  <button
+                    onClick={() => setShowShelterInput(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Update Campaign
+                  </button>
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2 md:gap-3">
-                <button 
-                  onClick={handleRefresh}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Refresh
-                </button>
-                
-                <button 
-                  onClick={changeShelter}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
-                >
-                  <Building className="w-4 h-4" />
-                  Change Shelter
-                </button>
-                
-                <button 
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
-                  onClick={() => alert('Export functionality coming soon!')}
-                >
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
-
-                <button
-                  onClick={() => setShowRequestForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  New Campaign
-                </button>
-
-                <button
-                  onClick={() => setShowUpdateForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                  Update Campaign
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
+
+        {/* Shelter Input Modal */}
+        {showShelterInput && <ShelterInputModal />}
 
         {/* Loading State */}
         {isLoading ? (
@@ -647,24 +753,24 @@ export default function Donations() {
           </div>
         ) : (
           <>
-            {/* Stats - SHELTER SPECIFIC */}
+            {/* Stats - Show always */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
-              <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+              <div className={`bg-white p-4 md:p-6 rounded-xl border shadow-sm ${!loggedInShelter ? 'opacity-60' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm text-gray-600">Total Received</p>
                   <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Shelter Only
+                    {loggedInShelter ? 'Shelter Only' : 'Select Shelter'}
                   </span>
                 </div>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
                   ${formatCurrency(shelterTotalReceived)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  All donations to your campaigns
+                  {loggedInShelter ? 'All donations to your campaigns' : 'Enter Shelter ID to view data'}
                 </p>
               </div>
               
-              <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+              <div className={`bg-white p-4 md:p-6 rounded-xl border shadow-sm ${!loggedInShelter ? 'opacity-60' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm text-gray-600">This Month</p>
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -675,39 +781,40 @@ export default function Donations() {
                   ${formatCurrency(shelterThisMonth)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Donations this month
+                  {loggedInShelter ? 'Donations this month' : 'Select Shelter to view monthly data'}
                 </p>
               </div>
               
-              <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm">
+              <div className={`bg-white p-4 md:p-6 rounded-xl border shadow-sm ${!loggedInShelter ? 'opacity-60' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm text-gray-600">Campaigns</p>
                   <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                    Active: {activeCampaigns}
+                    {loggedInShelter ? `Active: ${activeCampaigns}` : 'Inactive'}
                   </span>
                 </div>
                 <p className="text-2xl md:text-3xl font-bold mt-1">
                   {donationRequests.length}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Total campaigns
+                  {loggedInShelter ? 'Total campaigns' : 'No campaigns until shelter selected'}
                 </p>
               </div>
             </div>
 
-            {/* Search */}
+            {/* Search Bar - Show always */}
             <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm mb-6">
               <div className="flex gap-3">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
-                    placeholder="Search by donor name or campaign ID"
+                    placeholder={loggedInShelter ? "Search by donor name or campaign ID" : "Enter Shelter ID first to search"}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    disabled={!loggedInShelter}
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${!loggedInShelter ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
-                {searchQuery && (
+                {searchQuery && loggedInShelter && (
                   <button
                     onClick={() => setSearchQuery('')}
                     className="px-4 py-2.5 text-gray-600 hover:text-gray-800 text-sm font-medium"
@@ -718,41 +825,87 @@ export default function Donations() {
               </div>
               <div className="flex justify-between items-center mt-2">
                 <p className="text-xs text-gray-500">
-                  Showing donations for <span className="font-medium">{loggedInShelter.name}</span> only
+                  {loggedInShelter ? (
+                    <>Showing donations for <span className="font-medium">{loggedInShelter.name}</span> only</>
+                  ) : (
+                    <>Select a shelter to view donation data</>
+                  )}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {filteredDonations.length} of {donations.length} donations
-                </p>
+                {loggedInShelter && (
+                  <p className="text-xs text-gray-500">
+                    {filteredDonations.length} of {donations.length} donations
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Table */}
+            {/* Table - Show always */}
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              {filteredDonations.length === 0 ? (
+              {!loggedInShelter ? (
+                <div className="p-12 text-center text-gray-500">
+                  <div className="flex flex-col items-center">
+                    <Building className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-lg font-medium mb-3">No Shelter Selected</p>
+                    <p className="text-sm text-gray-600 mb-6 max-w-md">
+                      Enter your Shelter ID to view and manage your donation campaigns and history.
+                    </p>
+                    <button
+                      onClick={() => setShowShelterInput(true)}
+                      className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Building className="w-5 h-5" />
+                      Enter Shelter ID to Get Started
+                    </button>
+                  </div>
+                </div>
+              ) : filteredDonations.length === 0 && donations.length > 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg font-medium">
-                    {searchQuery ? 'No donations found' : 'No donations yet'}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Donations for your campaigns will appear here.
-                  </p>
-                  {!searchQuery && donationRequests.length === 0 && (
-                    <button
-                      onClick={() => setShowRequestForm(true)}
-                      className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      Create Your First Campaign
-                    </button>
-                  )}
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="mt-4 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                    >
-                      Clear Search
-                    </button>
-                  )}
+                  <p className="text-lg font-medium">No donations match your search</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-4 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Clear Search
+                  </button>
+                </div>
+              ) : filteredDonations.length === 0 && donations.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Search className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-lg font-medium mb-3">No Donations Yet</p>
+                    <p className="text-sm text-gray-600 mb-6 max-w-md">
+                      {donationRequests.length === 0 
+                        ? "You haven't created any donation campaigns yet. Create your first campaign to start receiving donations."
+                        : "You have campaigns but no donations yet. Once donors contribute, they will appear here."
+                      }
+                    </p>
+                    {donationRequests.length === 0 ? (
+                      <button
+                        onClick={() => setShowRequestForm(true)}
+                        className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                      >
+                        Create Your First Campaign
+                      </button>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={() => setShowRequestForm(true)}
+                          className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                          Create Another Campaign
+                        </button>
+                        <button
+                          onClick={handleRefresh}
+                          className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Check for New Donations
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
