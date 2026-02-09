@@ -11,39 +11,47 @@ export default function AdoptionPage() {
   const [selectedAgeRange, setSelectedAgeRange] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [pets, setPets] = useState([]);
+  const [approvedIds, setApprovedIds] = useState([]); // Store IDs of pets already adopted
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   /**
    * ROBUST IMAGE URL GENERATOR
-   * Syncs with the logic in your AdoptionListings component
    */
   const getImageUrl = (path) => {
     if (!path) return 'https://via.placeholder.com/400?text=No+Image';
-
     const baseUrl = 'http://localhost:8083/adoption-app';
-    // Ensure the path starts with a /
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
-
     return `${baseUrl}${cleanPath}`;
   };
 
-  // Fetch pets
+  // Fetch pets and requests
   useEffect(() => {
-    const fetchPets = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:8083/adoption-app/adoptions');
-        setPets(response.data);
+        // Fetch both endpoints concurrently
+        const [petsRes, requestsRes] = await Promise.all([
+          axios.get('http://localhost:8083/adoption-app/adoptions'),
+          axios.get('http://localhost:8083/adoption-app/adoption-requests')
+        ]);
+
+        // Identify which pet IDs have an "Approved" status
+        const approvedPetIds = requestsRes.data
+          .filter(req => req.status === 'Approved' || req.status === 'APPROVED')
+          .map(req => req.adoption_id || req.adoptionId);
+
+        setPets(petsRes.data);
+        setApprovedIds(approvedPetIds);
         setError(null);
       } catch (err) {
         console.error(err);
-        setError('Failed to fetch pets. Please try again later.');
+        setError('Failed to fetch data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
-    fetchPets();
+    fetchData();
   }, []);
 
   const toggleAgeRange = (age) => {
@@ -60,17 +68,25 @@ export default function AdoptionPage() {
   };
 
   const filteredPets = pets.filter(pet => {
-    // Handling potential camelCase or snake_case from API
+    const id = pet.adoption_id || pet.adoptionId;
     const species = pet.species;
     const petName = pet.pet_name || pet.petName || '';
     const age = pet.age;
 
+    // 1. Filter out Approved Pets
+    const isApproved = approvedIds.includes(id);
+    
+    // 2. Filter by Species
     const matchesSpecies = species === selectedSpecies;
+    
+    // 3. Filter by Age
     const matchesAge =
       selectedAgeRange.length === 0 || selectedAgeRange.includes(ageToRange(age));
+    
+    // 4. Filter by Search
     const matchesSearch = petName.toLowerCase().includes(searchText.toLowerCase());
     
-    return matchesSpecies && matchesAge && matchesSearch;
+    return !isApproved && matchesSpecies && matchesAge && matchesSearch;
   });
 
   const handleCardClick = (pet) => {
@@ -78,7 +94,8 @@ export default function AdoptionPage() {
       state: { 
         petName: pet.pet_name || pet.petName,
         adoptionId: pet.adoption_id || pet.adoptionId,
-shelterId: pet.shelter_id || pet.shelterId      } 
+        shelterId: pet.shelter_id || pet.shelterId      
+      } 
     });
   };
 
@@ -101,7 +118,8 @@ shelterId: pet.shelter_id || pet.shelterId      }
                     <span className="font-medium text-gray-700">Species</span>
                   </div>
                   <div className="space-y-2">
-                    {['Dog', 'Cat', 'Rabbit'].map(species => (
+                    {/* Added 'Bird' to the array below */}
+                    {['Dog', 'Cat', 'Bird', 'Rabbit'].map(species => (
                       <button
                         key={species}
                         onClick={() => setSelectedSpecies(species)}
@@ -162,7 +180,7 @@ shelterId: pet.shelter_id || pet.shelterId      }
                 {error && <p className="text-red-500 mt-2">{error}</p>}
                 {!loading && filteredPets.length === 0 && !error && (
                   <div className="bg-white p-8 rounded-lg text-center border border-dashed border-gray-300 mt-4">
-                    <p className="text-gray-500">No pets match your filters.</p>
+                    <p className="text-gray-500">No {selectedSpecies}s available for adoption right now.</p>
                   </div>
                 )}
               </div>
@@ -200,10 +218,7 @@ shelterId: pet.shelter_id || pet.shelterId      }
                         <p className="text-sm text-gray-600 mb-1">
                           {pet.breed} • {ageToRange(pet.age)}
                         </p>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <MapPin className="w-3 h-3" />
-                          <span>{pet.shelterId || 'Unknown Shelter'}</span>
-                        </div>
+                       
                       </div>
                     </div>
                   );

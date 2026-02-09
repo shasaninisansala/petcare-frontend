@@ -1,12 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, Heart, DollarSign, FileText, HandHeart, PlusCircle } from 'lucide-react';
+import axios from 'axios';
 
 export default function ShelterDashboard() {
+  // State for real data
+  const [counts, setCounts] = useState({
+    adoptions: 0,
+    requests: 0,
+    successful: 0, // This will be the count of 'Approved' requests
+    loading: true
+  });
+
+  useEffect(() => {
+    const fetchGlobalData = async () => {
+      try {
+        // Fetch all adoptions and all requests
+        const [adoptionsRes, requestsRes] = await Promise.all([
+          axios.get('http://localhost:8083/adoption-app/adoptions'),
+          axios.get('http://localhost:8083/adoption-app/adoption-requests')
+        ]);
+
+        const allRequests = Array.isArray(requestsRes.data) ? requestsRes.data : [];
+        
+        // Calculate successful adoptions (Status: Approved)
+        const approvedCount = allRequests.filter(req => req.status === 'Approved').length;
+
+        setCounts({
+          adoptions: Array.isArray(adoptionsRes.data) ? adoptionsRes.data.length : 0,
+          requests: allRequests.length,
+          successful: approvedCount,
+          loading: false
+        });
+      } catch (error) {
+        console.error("Error fetching global stats:", error);
+        setCounts(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchGlobalData();
+  }, []);
+
   const stats = [
     {
       label: 'Total Adoption Listed',
-      value: '42',
-      change: '+4 this month',
+      value: counts.loading ? '...' : counts.adoptions.toString(),
+      change: 'Across all licenses',
       changeType: 'positive',
       icon: Users,
       iconBg: 'bg-green-50',
@@ -14,8 +52,8 @@ export default function ShelterDashboard() {
     },
     {
       label: 'Adoption Requests',
-      value: '12',
-      change: '3 urgent reviews',
+      value: counts.loading ? '...' : counts.requests.toString(),
+      change: 'Total applications',
       changeType: 'warning',
       icon: FileText,
       iconBg: 'bg-orange-50',
@@ -23,8 +61,8 @@ export default function ShelterDashboard() {
     },
     {
       label: 'Successful Adoptions',
-      value: '156',
-      change: '80% success rate',
+      value: counts.loading ? '...' : counts.successful.toString(), // Real count of Approved requests
+      change: 'Approved requests',
       changeType: 'positive',
       icon: Heart,
       iconBg: 'bg-blue-50',
@@ -44,7 +82,7 @@ export default function ShelterDashboard() {
   const quickActions = [
     {
       icon: FileText,
-      label: 'Review 12 Requests',
+      label: `Review ${counts.requests} Requests`,
       iconBg: 'bg-green-50',
       iconColor: 'text-green-600'
     },

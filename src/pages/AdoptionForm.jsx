@@ -7,6 +7,7 @@ export default function AdoptionForm() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Extracting data passed via navigation state
   const petName = location.state?.petName;
   const rawShelterId = location.state?.shelterId; 
   const adoptionId = location.state?.adoptionId;
@@ -23,6 +24,7 @@ export default function AdoptionForm() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Error handling if no pet is selected
   if (!adoptionId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -42,12 +44,12 @@ export default function AdoptionForm() {
     e.preventDefault();
     setSubmitting(true);
 
-    const formattedShelterId = `REG-00${rawShelterId}`;
+    const formattedShelterId = `${rawShelterId}`;
 
     const postData = {
       adoption_id: adoptionId,
       pet_name: petName,
-      shelterId: formattedShelterId, 
+      shelterId: rawShelterId, // Using the ID directly as it comes from state
       type_of_home: formData.homeType,
       fenced_yard: formData.hasFencedYard === 'yes' ? 'Yes' : 'No',
       activity_level: formData.activityLevel <= 33 ? 'Low' : formData.activityLevel <= 66 ? 'Medium' : 'High',
@@ -62,10 +64,10 @@ export default function AdoptionForm() {
         postData
       );
       
-      // We take the request_id returned by your Java Backend (e.g., REQ-001)
+      // Get the ID returned by the backend
       const generatedId = response.data.request_id;
 
-      // Navigate to Success Page with the real ID and Pet Name
+      // Navigate to Success Page
       navigate('/adoptionSuccess', { 
         state: { 
           requestId: generatedId, 
@@ -88,6 +90,7 @@ export default function AdoptionForm() {
         <p className="text-gray-600 mb-6">Tell us about where {petName} would be living.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Full Name */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Full Name</label>
             <input
@@ -100,6 +103,7 @@ export default function AdoptionForm() {
             />
           </div>
 
+          {/* Home Type */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Type of Home</label>
             <select
@@ -116,18 +120,20 @@ export default function AdoptionForm() {
             </select>
           </div>
 
+          {/* Contact Number */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Contact Number</label>
             <input
               type="tel"
               value={formData.contactNumber}
               onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-              placeholder="(555) 123-4567"
+              placeholder="+94 000 000 000"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             />
           </div>
 
+          {/* Fenced Yard */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Do you have a fenced yard?</label>
             <div className="grid grid-cols-2 gap-3">
@@ -156,6 +162,7 @@ export default function AdoptionForm() {
             </div>
           </div>
 
+          {/* Activity Level */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Activity Level</label>
             <input
@@ -176,6 +183,7 @@ export default function AdoptionForm() {
             </div>
           </div>
 
+          {/* Hours Alone */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Hours alone per day</label>
             <input
@@ -190,6 +198,7 @@ export default function AdoptionForm() {
             />
           </div>
 
+          {/* Terms Agreement */}
           <div className="bg-gray-50 rounded-lg p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -203,6 +212,7 @@ export default function AdoptionForm() {
             </label>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex gap-4 pt-4">
             <button
               type="button"

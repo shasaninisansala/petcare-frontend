@@ -5,7 +5,6 @@ import { Link, useNavigate } from "react-router-dom";
 export default function AddPetForm() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    shelterId: '',
     petName: '',
     breed: '',
     species: 'Dog',
@@ -15,7 +14,7 @@ export default function AddPetForm() {
     kidFriendly: false,
     medicalNotes: '',
     specialNeeds: '',
-    shelter_id: '' // Kept as empty string
+    shelterId: '' // Frontend state matches backend field name
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -37,20 +36,13 @@ export default function AddPetForm() {
     }
   };
 
-  // THE MAIN SAVE LOGIC
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     
-    // VALIDATION: Ensure Shelter ID matches REG-001 format
-    const shelterIdRegex = /^REG-\d{3}$/;
-    
-    if (!formData.shelter_id) {
-        alert("Please enter a Shelter ID");
-        return;
-    }
-
-    if (!shelterIdRegex.test(formData.shelter_id)) {
-        alert("Invalid Shelter ID format. Please use REG-001 format.");
+    // Simple validation: just ensure it isn't empty. 
+    // No more REG-001 pattern checks.
+    if (!formData.shelterId) {
+        alert("Please enter the License Number.");
         return;
     }
 
@@ -67,7 +59,7 @@ export default function AddPetForm() {
         kid_friendly: formData.kidFriendly,
         medical_notes: formData.medicalNotes,
         special_needs: formData.specialNeeds,
-        shelterId: formData.shelter_id 
+        shelterId: formData.shelterId // Sends exactly what user typed
       };
       
       data.append('adoption', JSON.stringify(adoptionData));
@@ -85,7 +77,7 @@ export default function AddPetForm() {
         alert("Pet adoption listing created successfully!");
         navigate('/shelter/adoption-listings');
       } else {
-        alert("Failed to save to database. Check if the Shelter ID exists.");
+        alert("Failed to save. Please verify the License Number is valid.");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -106,9 +98,7 @@ export default function AddPetForm() {
             Adoption Listings
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">
-            Add New Pet
-          </span>
+          <span className="text-gray-900 font-medium">Add New Pet</span>
         </div>
 
         {/* Page Header */}
@@ -117,7 +107,6 @@ export default function AddPetForm() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">List a Pet for Adoption</h2>
             <p className="text-gray-600">Showcase a new companion to potential loving families.</p>
           </div>
-          {/* Header button triggers validation and submit */}
           <button 
             onClick={handleSubmit}
             className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
@@ -140,7 +129,7 @@ export default function AddPetForm() {
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
+                <div className="col-span-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Pet Name</label>
                   <input
                     type="text"
@@ -152,7 +141,7 @@ export default function AddPetForm() {
                   />
                 </div>
 
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Breed</label>
                   <input
                     type="text"
@@ -165,16 +154,15 @@ export default function AddPetForm() {
                 </div>
               </div>
 
-              {/* Shelter ID Field with Pattern Hint */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shelter ID</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">License Number</label>
                   <input
                     type="text"
-                    name="shelter_id"
-                    value={formData.shelter_id}
+                    name="shelterId" // Backend expects shelterId
+                    value={formData.shelterId}
                     onChange={handleInputChange}
-                    placeholder="REG-001"
+                    placeholder="Enter License #"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
@@ -280,16 +268,16 @@ export default function AddPetForm() {
 
                 <div className="p-4">
                   <p className="text-sm text-gray-600 mb-3">
-                    Shelter: {formData.shelter_id || "ID"} • {formData.petName || "Pet"} • {formData.age || "Age"} • {formData.species} • {formData.size}
+                    License: {formData.shelterId || "###"} • {formData.petName || "Pet"} • {formData.age || "0"}y
                   </p>
 
                   <div className="flex gap-2 mb-3">
-                    {formData.vaccinated && <div className="flex-1 text-center py-2 bg-gray-50 rounded">✓ Vaccinated</div>}
-                    {formData.kidFriendly && <div className="flex-1 text-center py-2 bg-gray-50 rounded">✓ Kid Friendly</div>}
+                    {formData.vaccinated && <div className="flex-1 text-xs text-center py-2 bg-gray-50 rounded">✓ Vaccinated</div>}
+                    {formData.kidFriendly && <div className="flex-1 text-xs text-center py-2 bg-gray-50 rounded">✓ Friendly</div>}
                   </div>
 
-                  <p className="text-sm text-gray-700 mb-4">
-                    {formData.medicalNotes || "No description yet."}
+                  <p className="text-sm text-gray-700 mb-4 line-clamp-2">
+                    {formData.medicalNotes || "No description provided."}
                   </p>
 
                   <button 
