@@ -257,7 +257,7 @@ export default function Donations() {
       return;
     }
     
-    const newShelterId = prompt('Enter new Shelter ID (e.g., REG01):', loggedInShelter?.id || '');
+    const newShelterId = prompt('Enter new Shelter ID:', loggedInShelter?.id || '');
     if (!newShelterId) return;
     
     if (setShelter(newShelterId)) {
@@ -518,31 +518,29 @@ export default function Donations() {
   );
 
   // =========================
-  // SHELTER INPUT MODAL - UPDATED FOR STRING IDs
+  // SHELTER INPUT MODAL - SIMPLIFIED
   // =========================
   const ShelterInputModal = () => (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
       <div className="bg-white p-6 rounded-xl w-full max-w-md">
         <div className="flex items-center gap-3 mb-4">
           <Building className="w-8 h-8 text-green-500" />
-          <h2 className="text-xl font-bold text-gray-900">Enter Shelter ID</h2>
+          <h2 className="text-xl font-bold text-gray-900">Enter Shelter Licence No</h2>
         </div>
         
         <p className="text-gray-600 mb-6">
-          Please enter your Shelter ID to view and manage your donation data.
-          <br />
-          <span className="text-sm text-gray-500">Example: REG01, SHELTER001, ABC123</span>
+          Please enter your Shelter Licence No to view and manage your donation data.
         </p>
         
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shelter ID
+              Shelter Licence No
             </label>
             <input
               type="text"
-              placeholder="Enter Shelter ID (e.g., REG01)"
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent uppercase"
+              placeholder="Enter Shelter ID"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               id="shelterIdInput"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
@@ -552,7 +550,7 @@ export default function Donations() {
               }}
             />
             <p className="text-xs text-gray-500 mt-1">
-              Enter your alphanumeric Shelter ID (e.g., REG01, SHELTER001)
+              Enter your Shelter Licence No.
             </p>
           </div>
           
@@ -575,39 +573,6 @@ export default function Donations() {
             >
               Cancel
             </button>
-          </div>
-          
-          <div className="pt-4 border-t">
-            <p className="text-sm text-gray-600 mb-2">Common Shelter ID formats:</p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => {
-                  const input = document.getElementById('shelterIdInput');
-                  input.value = 'REG01';
-                }}
-                className="text-xs border px-2 py-1 rounded hover:bg-gray-50"
-              >
-                REG01
-              </button>
-              <button
-                onClick={() => {
-                  const input = document.getElementById('shelterIdInput');
-                  input.value = 'SHELTER001';
-                }}
-                className="text-xs border px-2 py-1 rounded hover:bg-gray-50"
-              >
-                SHELTER001
-              </button>
-              <button
-                onClick={() => {
-                  const input = document.getElementById('shelterIdInput');
-                  input.value = 'ABC123';
-                }}
-                className="text-xs border px-2 py-1 rounded hover:bg-gray-50"
-              >
-                ABC123
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -739,7 +704,7 @@ export default function Donations() {
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
                   >
                     <Building className="w-4 h-4" />
-                    Enter Shelter ID
+                    Enter Shelter Shelter Licence No
                   </button>
                   
                   <button 
@@ -876,8 +841,6 @@ export default function Donations() {
                     <p className="text-lg font-medium mb-3">No Shelter Selected</p>
                     <p className="text-sm text-gray-600 mb-6 max-w-md">
                       Enter your Shelter ID to view and manage your donation campaigns and history.
-                      <br />
-                      <span className="text-xs text-gray-500">Example IDs: REG01, SHELTER001, ABC123</span>
                     </p>
                     <button
                       onClick={() => setShowShelterInput(true)}
@@ -1091,14 +1054,14 @@ export default function Donations() {
                     <input
                       name="shelterId"
                       type="text"
-                      placeholder="e.g., REG01"
+                      placeholder="Enter Shelter ID"
                       value={requestForm.shelterId}
                       onChange={handleRequestChange}
                       required
-                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent uppercase"
+                      className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Enter alphanumeric Shelter ID (e.g., REG01, SHELTER001)
+                      Enter your Shelter ID
                     </p>
                   </div>
                   <div>
@@ -1374,7 +1337,7 @@ export default function Donations() {
                         value={updateForm.shelterId}
                         onChange={handleUpdateChange}
                         required
-                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
+                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
