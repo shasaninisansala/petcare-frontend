@@ -1,12 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, Heart, DollarSign, FileText, HandHeart, PlusCircle } from 'lucide-react';
+import axios from 'axios';
 
 export default function ShelterDashboard() {
+  // State for real data
+  const [counts, setCounts] = useState({
+    adoptions: 0,
+    requests: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    const fetchGlobalData = async () => {
+      try {
+        // Fetch all adoptions and all requests from your root endpoints
+        const [adoptionsRes, requestsRes] = await Promise.all([
+          axios.get('http://localhost:8083/adoption-app/adoptions'),
+          axios.get('http://localhost:8083/adoption-app/adoption-requests')
+        ]);
+
+        setCounts({
+          adoptions: Array.isArray(adoptionsRes.data) ? adoptionsRes.data.length : 0,
+          requests: Array.isArray(requestsRes.data) ? requestsRes.data.length : 0,
+          loading: false
+        });
+      } catch (error) {
+        console.error("Error fetching global stats:", error);
+        setCounts(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchGlobalData();
+  }, []);
+
   const stats = [
     {
       label: 'Total Adoption Listed',
-      value: '42',
-      change: '+4 this month',
+      value: counts.loading ? '...' : counts.adoptions.toString(),
+      change: 'System-wide total',
       changeType: 'positive',
       icon: Users,
       iconBg: 'bg-green-50',
@@ -14,8 +45,8 @@ export default function ShelterDashboard() {
     },
     {
       label: 'Adoption Requests',
-      value: '12',
-      change: '3 urgent reviews',
+      value: counts.loading ? '...' : counts.requests.toString(),
+      change: 'All licenses',
       changeType: 'warning',
       icon: FileText,
       iconBg: 'bg-orange-50',
@@ -44,7 +75,7 @@ export default function ShelterDashboard() {
   const quickActions = [
     {
       icon: FileText,
-      label: 'Review 12 Requests',
+      label: `Review ${counts.requests} Requests`,
       iconBg: 'bg-green-50',
       iconColor: 'text-green-600'
     },

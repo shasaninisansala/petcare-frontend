@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, ClipboardList, ArrowRight, AlertTriangle, X, Printer, Phone, Home, Activity, Clock, Check, Ban } from 'lucide-react';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // 1. Change this import
+import autoTable from 'jspdf-autotable';
 import axios from 'axios';
 
 export default function AdoptionRequests() {
@@ -18,7 +18,6 @@ export default function AdoptionRequests() {
   const tabs = [
     { label: 'All', count: null },
     { label: 'Pending', count: requests.filter(r => r.status === 'Pending').length || null },
-    { label: 'Reviewed', count: null },
     { label: 'Approved', count: null },
     { label: 'Rejected', count: null }
   ];
@@ -26,11 +25,12 @@ export default function AdoptionRequests() {
   const fetchRequests = async (id) => {
     setLoading(true);
     try {
+      // Backend still expects the ID as part of the path/param
       const response = await axios.get(`http://localhost:8083/adoption-app/adoption-requests/shelter/${id}`);
       setRequests(response.data);
       setLoading(false);
     } catch (error) {
-      setError("Could not find data for this Shelter ID.");
+      setError("Could not find data for this License Number.");
       setActiveShelterId(null);
       setLoading(false);
     }
@@ -58,10 +58,10 @@ export default function AdoptionRequests() {
   const handleLogin = (e) => {
     e.preventDefault();
     setError('');
-    const shelterIdRegex = /^REG-\d+$/;
 
-    if (!shelterIdRegex.test(shelterIdInput)) {
-      setError('Invalid ID format. Must be like REG-001');
+    // Removed REG-XXX Regex. Now we just check if it is not empty.
+    if (!shelterIdInput.trim()) {
+      setError('Please enter a valid License Number.');
       return;
     }
 
@@ -79,15 +79,12 @@ export default function AdoptionRequests() {
     }
   };
 
-  // --- 100% CORRECT PDF EXPORT ---
   const exportToPDF = () => {
     const doc = new jsPDF();
-    
-    // Add Title
     doc.setFontSize(18);
     doc.text(`Adoption Requests Report`, 14, 15);
     doc.setFontSize(12);
-    doc.text(`Shelter ID: ${activeShelterId}`, 14, 22);
+    doc.text(`License Number: ${activeShelterId}`, 14, 22);
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 29);
     
     const tableData = requests.map(req => [
@@ -98,19 +95,17 @@ export default function AdoptionRequests() {
       req.status
     ]);
 
-    // Use the autoTable function directly instead of doc.autoTable
     autoTable(doc, {
       startY: 35,
       head: [['ID', 'Applicant', 'Pet Name', 'Request Date', 'Status']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillColor: [34, 197, 94] }, // Green-500 color
+      headStyles: { fillColor: [34, 197, 94] },
     });
 
     doc.save(`Adoption_Requests_${activeShelterId}.pdf`);
   };
 
-  // --- LOGIN VIEW ---
   if (!activeShelterId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -120,20 +115,20 @@ export default function AdoptionRequests() {
               <ClipboardList className="w-8 h-8 text-blue-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Shelter Portal</h1>
-            <p className="text-gray-500 text-center mt-2">Enter Registration ID (REG-XXX)</p>
+            <p className="text-gray-500 text-center mt-2">Enter your License Number to manage requests</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="text"
               required
-              placeholder="REG-001"
+              placeholder="e.g. LNC-9923"
               value={shelterIdInput}
-              onChange={(e) => { setShelterIdInput(e.target.value.toUpperCase()); if(error) setError(''); }}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:outline-none transition-all uppercase ${error ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-green-500'}`}
+              onChange={(e) => { setShelterIdInput(e.target.value); if(error) setError(''); }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:outline-none transition-all ${error ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-green-500'}`}
             />
             {error && <div className="flex items-center gap-2 mt-2 text-red-600 text-sm"><AlertTriangle className="w-4 h-4" /> {error}</div>}
             <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-all flex items-center justify-center gap-2">
-              Access Dashboard <ArrowRight className="w-4 h-4" />
+              Access Requests <ArrowRight className="w-4 h-4" />
             </button>
           </form>
         </div>
@@ -149,7 +144,7 @@ export default function AdoptionRequests() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Adoption Requests</h2>
             <div className="flex items-center gap-2">
                 <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded tracking-widest">{activeShelterId}</span>
-                <button onClick={() => { setActiveShelterId(null); setRequests([]); }} className="text-sm text-blue-600 hover:underline ml-2">Log Out</button>
+                <button onClick={() => { setActiveShelterId(null); setRequests([]); }} className="text-sm text-blue-600 hover:underline ml-2">Change License</button>
             </div>
           </div>
           <button onClick={exportToPDF} className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700 bg-white shadow-sm">
