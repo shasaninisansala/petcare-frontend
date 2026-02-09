@@ -7,21 +7,28 @@ export default function ShelterDashboard() {
   const [counts, setCounts] = useState({
     adoptions: 0,
     requests: 0,
+    successful: 0, // This will be the count of 'Approved' requests
     loading: true
   });
 
   useEffect(() => {
     const fetchGlobalData = async () => {
       try {
-        // Fetch all adoptions and all requests from your root endpoints
+        // Fetch all adoptions and all requests
         const [adoptionsRes, requestsRes] = await Promise.all([
           axios.get('http://localhost:8083/adoption-app/adoptions'),
           axios.get('http://localhost:8083/adoption-app/adoption-requests')
         ]);
 
+        const allRequests = Array.isArray(requestsRes.data) ? requestsRes.data : [];
+        
+        // Calculate successful adoptions (Status: Approved)
+        const approvedCount = allRequests.filter(req => req.status === 'Approved').length;
+
         setCounts({
           adoptions: Array.isArray(adoptionsRes.data) ? adoptionsRes.data.length : 0,
-          requests: Array.isArray(requestsRes.data) ? requestsRes.data.length : 0,
+          requests: allRequests.length,
+          successful: approvedCount,
           loading: false
         });
       } catch (error) {
@@ -37,7 +44,7 @@ export default function ShelterDashboard() {
     {
       label: 'Total Adoption Listed',
       value: counts.loading ? '...' : counts.adoptions.toString(),
-      change: 'System-wide total',
+      change: 'Across all licenses',
       changeType: 'positive',
       icon: Users,
       iconBg: 'bg-green-50',
@@ -46,7 +53,7 @@ export default function ShelterDashboard() {
     {
       label: 'Adoption Requests',
       value: counts.loading ? '...' : counts.requests.toString(),
-      change: 'All licenses',
+      change: 'Total applications',
       changeType: 'warning',
       icon: FileText,
       iconBg: 'bg-orange-50',
@@ -54,8 +61,8 @@ export default function ShelterDashboard() {
     },
     {
       label: 'Successful Adoptions',
-      value: '156',
-      change: '80% success rate',
+      value: counts.loading ? '...' : counts.successful.toString(), // Real count of Approved requests
+      change: 'Approved requests',
       changeType: 'positive',
       icon: Heart,
       iconBg: 'bg-blue-50',
