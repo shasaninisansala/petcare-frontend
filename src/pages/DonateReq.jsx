@@ -18,8 +18,11 @@ export default function Donations() {
   const [donationRequests, setDonationRequests] = useState([]);
   const [donations, setDonations] = useState([]);
 
-  // Logged-in shelter info - Start as null
-  const [loggedInShelter, setLoggedInShelter] = useState(null);
+  // Logged-in shelter info - Load from localStorage on initial render
+  const [loggedInShelter, setLoggedInShelter] = useState(() => {
+    const savedShelter = localStorage.getItem('currentShelter');
+    return savedShelter ? JSON.parse(savedShelter) : null;
+  });
 
   // Stats for this shelter
   const [shelterTotalReceived, setShelterTotalReceived] = useState(0);
@@ -61,22 +64,24 @@ export default function Donations() {
   const [showShelterInput, setShowShelterInput] = useState(false);
 
   // =========================
-  // INITIAL LOAD - NO DATA
+  // INITIAL LOAD - RESTORE SHELTER IF EXISTS
   // =========================
   useEffect(() => {
-    // Clear any stored shelter data to ensure fresh start
-    localStorage.removeItem('currentShelter');
-    
-    // Reset all data
-    setDonations([]);
-    setDonationRequests([]);
-    setLoggedInShelter(null);
-    setShelterTotalReceived(0);
-    setShelterThisMonth(0);
-    setActiveCampaigns(0);
-    
-    console.log('📭 Page loaded with empty state');
-  }, []);
+    // Auto-populate request form with logged-in shelter if exists
+    if (loggedInShelter) {
+      setRequestForm(prev => ({
+        ...prev,
+        shelterId: loggedInShelter.id,
+        shelterName: loggedInShelter.name
+      }));
+      
+      // Fetch data for this shelter
+      fetchAllData(loggedInShelter.id);
+      console.log('📊 Restored shelter from localStorage:', loggedInShelter.id);
+    } else {
+      console.log('📭 No shelter found in localStorage, starting fresh');
+    }
+  }, []); // Empty dependency array - runs only on initial mount
 
   // =========================
   // FETCH DATA FOR THIS SHELTER
@@ -232,7 +237,10 @@ export default function Donations() {
       registrationNumber: id // Use the ID as registration number
     };
     
+    // Save to localStorage
     localStorage.setItem('currentShelter', JSON.stringify(shelterData));
+    
+    // Update state
     setLoggedInShelter(shelterData);
     setShowShelterInput(false);
     
@@ -249,21 +257,29 @@ export default function Donations() {
   };
 
   // =========================
-  // CHANGE SHELTER FUNCTION - UPDATED
+  // LOGOUT SHELTER FUNCTION
   // =========================
-  const changeShelter = () => {
-    if (!loggedInShelter) {
-      setShowShelterInput(true);
-      return;
-    }
+  const logoutShelter = () => {
+    // Clear localStorage
+    localStorage.removeItem('currentShelter');
     
-    const newShelterId = prompt('Enter new Shelter ID:', loggedInShelter?.id || '');
-    if (!newShelterId) return;
+    // Clear all state
+    setLoggedInShelter(null);
+    setDonations([]);
+    setDonationRequests([]);
+    setShelterTotalReceived(0);
+    setShelterThisMonth(0);
+    setActiveCampaigns(0);
+    setSearchQuery('');
     
-    if (setShelter(newShelterId)) {
-      // Reset search query
-      setSearchQuery('');
-    }
+    // Reset request form
+    setRequestForm(prev => ({
+      ...prev,
+      shelterId: '',
+      shelterName: ''
+    }));
+    
+    console.log('🔓 Shelter logged out');
   };
 
   // Refresh data
@@ -542,6 +558,7 @@ export default function Donations() {
               placeholder="Enter Shelter ID"
               className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               id="shelterIdInput"
+              defaultValue={loggedInShelter?.id || ''}
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = document.getElementById('shelterIdInput');
@@ -562,7 +579,7 @@ export default function Donations() {
               }}
               className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 font-medium transition-colors"
             >
-              Continue
+              {loggedInShelter ? 'Switch Shelter' : 'Continue'}
             </button>
             
             <button
@@ -595,10 +612,8 @@ export default function Donations() {
                   <div className="flex items-center gap-3 mb-2">
                     <Building className="w-8 h-8 text-green-500" />
                     <div>
-                      <div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
-                    <p className="text-sm text-gray-600">Shelter Dashboard</p>
-                  </div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
+                      <p className="text-sm text-gray-600">Shelter Dashboard</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
@@ -606,7 +621,13 @@ export default function Donations() {
                       <span className="text-gray-500">Reg No:</span>
                       <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">{loggedInShelter.id}</span>
                     </div>
-                   
+                    <button
+                      onClick={logoutShelter}
+                      className="text-red-600 hover:text-red-700 text-sm underline"
+                      title="Logout from this shelter"
+                    >
+                      Logout
+                    </button>
                   </div>
                 </div>
 
@@ -621,21 +642,9 @@ export default function Donations() {
                   </button>
                   
                   <button 
-                    onClick={changeShelter}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
-                  >
-                    <Building className="w-4 h-4" />
-                    Change Shelter
-                  </button>
-                  
-                  <button 
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
                     onClick={() => {
-                      if (!loggedInShelter) {
-                        setShowShelterInput(true);
-                      } else {
-                        alert('Export functionality coming soon!');
-                      }
+                      alert('Export functionality coming soon!');
                     }}
                   >
                     <Download className="w-4 h-4" />
@@ -644,11 +653,7 @@ export default function Donations() {
 
                   <button
                     onClick={() => {
-                      if (!loggedInShelter) {
-                        setShowShelterInput(true);
-                      } else {
-                        setShowRequestForm(true);
-                      }
+                      setShowRequestForm(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors"
                   >
@@ -658,11 +663,7 @@ export default function Donations() {
 
                   <button
                     onClick={() => {
-                      if (!loggedInShelter) {
-                        setShowShelterInput(true);
-                      } else {
-                        setShowUpdateForm(true);
-                      }
+                      setShowUpdateForm(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors"
                   >
@@ -695,16 +696,8 @@ export default function Donations() {
                     onClick={() => setShowShelterInput(true)}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    Refresh
-                  </button>
-                  
-                  <button 
-                    onClick={() => setShowShelterInput(true)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
-                  >
                     <Building className="w-4 h-4" />
-                    Enter Shelter Shelter Licence No
+                    Enter Shelter Licence No
                   </button>
                   
                   <button 
