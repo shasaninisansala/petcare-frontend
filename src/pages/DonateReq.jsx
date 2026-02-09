@@ -166,7 +166,7 @@ export default function Donations() {
         axios.get('http://localhost:8084/api/donation-requests')
       ]);
       
-      // Filter requests by shelter ID
+      // Filter requests by shelter ID - now comparing strings
       const shelterRequests = allRequests.data.filter(req => 
         req.shelterId === shelterId || String(req.shelterId) === String(shelterId)
       );
@@ -214,7 +214,7 @@ export default function Donations() {
   };
 
   // =========================
-  // SET SHELTER FUNCTION
+  // SET SHELTER FUNCTION - UPDATED FOR STRING IDs
   // =========================
   const setShelter = (shelterId) => {
     if (!shelterId || shelterId.trim() === '') {
@@ -222,17 +222,14 @@ export default function Donations() {
       return false;
     }
 
-    const id = parseInt(shelterId);
-    if (isNaN(id) || id <= 0) {
-      alert('Please enter a valid numeric Shelter ID');
-      return false;
-    }
-
+    // Remove any leading/trailing whitespace and convert to uppercase for consistency
+    const id = shelterId.trim().toUpperCase();
+    
     // Create shelter object with entered ID
     const shelterData = {
-      id: id,
-      name: `Shelter #${id}`,
-      registrationNumber: `SHELTER-${id}`
+      id: id, // Now a string like "REG01"
+      name: `Shelter ${id}`, // Changed from "Shelter #" to "Shelter REG01"
+      registrationNumber: id // Use the ID as registration number
     };
     
     localStorage.setItem('currentShelter', JSON.stringify(shelterData));
@@ -252,7 +249,7 @@ export default function Donations() {
   };
 
   // =========================
-  // CHANGE SHELTER FUNCTION
+  // CHANGE SHELTER FUNCTION - UPDATED
   // =========================
   const changeShelter = () => {
     if (!loggedInShelter) {
@@ -521,29 +518,28 @@ export default function Donations() {
   );
 
   // =========================
-  // SHELTER INPUT MODAL
+  // SHELTER INPUT MODAL - SIMPLIFIED
   // =========================
   const ShelterInputModal = () => (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
       <div className="bg-white p-6 rounded-xl w-full max-w-md">
         <div className="flex items-center gap-3 mb-4">
           <Building className="w-8 h-8 text-green-500" />
-          <h2 className="text-xl font-bold text-gray-900">Enter Shelter ID</h2>
+          <h2 className="text-xl font-bold text-gray-900">Enter Shelter Licence No</h2>
         </div>
         
         <p className="text-gray-600 mb-6">
-          Please enter your Shelter ID to view and manage your donation data.
+          Please enter your Shelter Licence No to view and manage your donation data.
         </p>
         
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shelter ID
+              Shelter Licence No
             </label>
             <input
-              type="number"
-              min="1"
-              placeholder="Enter Shelter ID (e.g., 1)"
+              type="text"
+              placeholder="Enter Shelter ID"
               className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               id="shelterIdInput"
               onKeyPress={(e) => {
@@ -553,6 +549,9 @@ export default function Donations() {
                 }
               }}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter your Shelter Licence No.
+            </p>
           </div>
           
           <div className="flex gap-3 pt-2">
@@ -596,21 +595,18 @@ export default function Donations() {
                   <div className="flex items-center gap-3 mb-2">
                     <Building className="w-8 h-8 text-green-500" />
                     <div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
-                      <p className="text-sm text-gray-600">Shelter Dashboard</p>
+                      <div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
+                    <p className="text-sm text-gray-600">Shelter Dashboard</p>
+                  </div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div>
-                      <span className="text-gray-500">Shelter ID:</span>
-                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">#{loggedInShelter.id}</span>
+                      <span className="text-gray-500">Reg No:</span>
+                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">{loggedInShelter.id}</span>
                     </div>
-                    {loggedInShelter.registrationNumber && (
-                      <div>
-                        <span className="text-gray-500">Reg No:</span>
-                        <span className="ml-2 font-medium">{loggedInShelter.registrationNumber}</span>
-                      </div>
-                    )}
+                   
                   </div>
                 </div>
 
@@ -629,7 +625,7 @@ export default function Donations() {
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
                   >
                     <Building className="w-4 h-4" />
-                    {loggedInShelter ? 'Change Shelter' : 'Enter Shelter ID'}
+                    Change Shelter
                   </button>
                   
                   <button 
@@ -687,13 +683,10 @@ export default function Donations() {
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div>
-                      <span className="text-gray-500">Shelter ID:</span>
+                      <span className="text-gray-500">Reg No:</span>
                       <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded text-gray-400">Not Selected</span>
                     </div>
-                    <div>
-                      <span className="text-gray-500">Reg No:</span>
-                      <span className="ml-2 font-medium text-gray-400">SHELTER-XXX</span>
-                    </div>
+                    
                   </div>
                 </div>
 
@@ -711,7 +704,7 @@ export default function Donations() {
                     className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
                   >
                     <Building className="w-4 h-4" />
-                    Enter Shelter ID
+                    Enter Shelter Shelter Licence No
                   </button>
                   
                   <button 
@@ -1060,14 +1053,16 @@ export default function Donations() {
                     </label>
                     <input
                       name="shelterId"
-                      type="number"
-                      placeholder="e.g., 1"
+                      type="text"
+                      placeholder="Enter Shelter ID"
                       value={requestForm.shelterId}
                       onChange={handleRequestChange}
                       required
-                      min="1"
                       className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter your Shelter ID
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1338,11 +1333,10 @@ export default function Donations() {
                       </label>
                       <input
                         name="shelterId"
-                        type="number"
+                        type="text"
                         value={updateForm.shelterId}
                         onChange={handleUpdateChange}
                         required
-                        min="1"
                         className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
