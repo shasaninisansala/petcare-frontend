@@ -19,9 +19,35 @@ export default function DonatePage() {
     const fetchRequests = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:8080/api/donation-requests'); 
-        console.log('Donation requests data:', response.data); // Debug log
-        setDonationRequests(response.data);
+        // Fetch donation requests
+        const response = await axios.get('http://localhost:8084/api/donation-requests'); 
+        const requests = response.data;
+        
+        // For each request, fetch updated current amount from donations
+        const requestsWithUpdatedAmounts = await Promise.all(
+          requests.map(async (req) => {
+            try {
+              // Fetch current total donations for this request
+              const totalResponse = await axios.get(
+                `http://localhost:8084/api/donations/request/${req.id}/total`
+              );
+              
+              // Sync the amount in the backend (this will update donation_requests table)
+              await axios.post(`http://localhost:8084/api/donations/request/${req.id}/sync`);
+              
+              return {
+                ...req,
+                currentAmount: totalResponse.data.totalAmount || 0
+              };
+            } catch (error) {
+              console.error(`Error fetching total for request ${req.id}:`, error);
+              return req;
+            }
+          })
+        );
+        
+        console.log('Donation requests data with updated amounts:', requestsWithUpdatedAmounts);
+        setDonationRequests(requestsWithUpdatedAmounts);
       } catch (error) {
         console.error('Error fetching donation requests:', error);
       } finally {
@@ -74,7 +100,7 @@ export default function DonatePage() {
 
   // Format currency
   const formatCurrency = (amount) => {
-    if (!amount) return '0.00';
+    if (!amount && amount !== 0) return '0.00';
     try {
       return parseFloat(amount).toLocaleString('en-US', {
         minimumFractionDigits: 2,
@@ -96,6 +122,24 @@ export default function DonatePage() {
     const amount = parseFloat(req.currentAmount || 0);
     return sum + (isNaN(amount) ? 0 : amount);
   }, 0);
+
+  // Function to refresh data
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get('http://localhost:8084/api/donation-requests'); 
+      setDonationRequests(response.data);
+      
+      // Sync amounts in backend
+      await axios.post('http://localhost:8084/api/donations/admin/sync-amounts');
+      
+      console.log('✅ Data refreshed and synced');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -122,6 +166,13 @@ export default function DonatePage() {
                 </p>
                 <p className="text-sm text-green-100">Total Raised</p>
               </div>
+              <button
+                onClick={refreshData}
+                className="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                title="Refresh Data"
+              >
+                Refresh
+              </button>
             </div>
           </div>
         </section>
@@ -228,9 +279,6 @@ export default function DonatePage() {
               </div>
             ) : (
               <>
-                {/* Debug info - shows IDs in console */}
-                {console.log('Displaying requests with IDs:', filteredRequests.map(req => ({id: req.id, title: req.title})))}
-                
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredRequests.map((req) => (
                     <div key={req.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
@@ -258,13 +306,13 @@ export default function DonatePage() {
                           </span>
                         </div>
                         
-                        {/* Request ID Badge - ADDED THIS */}
+                        {/* Request ID Badge */}
                         <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-xs font-mono flex items-center gap-1">
                           <Hash className="w-3 h-3" />
                           ID: {req.id}
                         </div>
                         
-                        {/* View Image Button - Moved down to avoid overlap */}
+                        {/* View Image Button */}
                         <button
                           onClick={() => viewImage(req.imageUrl)}
                           className="absolute top-12 right-3 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
@@ -294,7 +342,7 @@ export default function DonatePage() {
                       <div className="p-5">
                         <div className="flex justify-between items-start mb-3">
                           <h3 className="text-lg font-bold text-gray-900 line-clamp-1">{req.title}</h3>
-                          {/* Request ID inside card - ADDED THIS */}
+                          {/* Request ID inside card */}
                           <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                             <Hash className="w-3 h-3" />
                             <span className="font-mono">#{req.id}</span>
@@ -303,7 +351,7 @@ export default function DonatePage() {
                         
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{req.description}</p>
                         
-                        {/* Shelter Info - Now includes Shelter ID too */}
+                        {/* Shelter Info */}
                         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4" />
@@ -314,7 +362,7 @@ export default function DonatePage() {
                           </div>
                         </div>
                         
-                        {/* Stats Grid - Now includes Request ID info */}
+                        {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-3 mb-4">
                           <div className="bg-gray-50 p-3 rounded-lg">
                             <div className="flex items-center gap-2 text-gray-600 mb-1">
@@ -345,7 +393,7 @@ export default function DonatePage() {
                           <span>Created: {formatDate(req.createdAt)}</span>
                         </div>
 
-                        {/* Donate Button - Shows ID in button too */}
+                        {/* Donate Button */}
                         <Link
                           to="/donate/form"
                           state={{ 
@@ -369,14 +417,12 @@ export default function DonatePage() {
                   ))}
                 </div>
 
-                {/* Show count with ID info */}
+                {/* Show count */}
                 <div className="mt-8 text-center text-gray-600">
                   <p>Showing {filteredRequests.length} of {donationRequests.length} campaigns</p>
-                  {donationRequests.length > 0 && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      Request IDs range: {Math.min(...donationRequests.map(req => req.id))} - {Math.max(...donationRequests.map(req => req.id))}
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-500 mt-2">
+                    Total Raised: ${formatCurrency(totalRaised)}
+                  </p>
                 </div>
               </>
             )}

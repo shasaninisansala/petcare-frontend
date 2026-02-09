@@ -12,6 +12,9 @@ import AdoptionForm from "./pages/AdoptionForm";
 import AdoptionSuccess from "./pages/AdoptionSuccess";
 
 import BreedInformation from "./pages/Breedinfo";
+import DonateForm from "./pages/DonateForm";
+import DonationPaymentPage from "./pages/DonationPaymentPage";
+import DonationSuccess from "./pages/DonationSuccess";
 
 import ShelterLayout from "./components/ShelterLayout";
 import ShelterDashboard from "./pages/ShelterDashboard";
@@ -46,6 +49,9 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/donate" element={<DonatePage />} />
+          <Route path="/donate/form" element={<DonateForm />} />
+          <Route path="/donate/payment" element={<DonationPaymentPage />} />
+          <Route path="/donation-success" element={<DonationSuccess />} />
           <Route path="/adopt" element={<AdoptionPage />} />
                   <Route path="/adoption-form" element={<AdoptionForm />} />
                                     <Route path="/adoptionSuccess" element={<AdoptionSuccess />} />

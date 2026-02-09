@@ -44,8 +44,7 @@ export default function AdoptionForm() {
     e.preventDefault();
     setSubmitting(true);
 
-    // REMOVED: const formattedShelterId = `REG-00${rawShelterId}`;
-    // We now use rawShelterId directly to avoid "REG-00REG-001" double-prefixing.
+    const formattedShelterId = `${rawShelterId}`;
 
     const postData = {
       adoption_id: adoptionId,

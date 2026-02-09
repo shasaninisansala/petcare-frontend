@@ -22,85 +22,91 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      let apiEndpoint;
+  try {
+    let apiEndpoint;
+
+    switch (formData.role) {
+      case 'pet-owner':
+        apiEndpoint = 'http://localhost:8080/petowner-app/api/petowners/login';
+        break;
+      case 'admin':
+        apiEndpoint = 'http://localhost:8081/admin-app/api/admins/login';
+        break;
+      case 'shelter':
+        apiEndpoint = 'http://localhost:8085/api/auth/login';
+        break;
+      default:
+        apiEndpoint = 'http://localhost:8080/petowner-app/api/petowners/login';
+    }
+
+    const response = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      toast.success('Login successful!');
+
       
-      // Determine which API endpoint to call based on role
-      switch(formData.role) {
-        case 'pet-owner':
-          apiEndpoint = 'http://localhost:8080/petowner-app/api/petowners/login';
-          break;
-        case 'admin':
-          apiEndpoint = 'http://localhost:8081/admin-app/api/admins/login';
-          break;
-        case 'shelter':
-          apiEndpoint = 'http://localhost:8082/shelter-app/api/shelters/login'; // Assuming you'll create shelter-ms
-          break;
-        default:
-          apiEndpoint = 'http://localhost:8080/petowner-app/api/petowners/login';
+      localStorage.setItem('user', JSON.stringify({
+        userId: data.userId,
+        fullName: data.fullName,
+        email: data.email,
+        role: data.role
+      }));
+
+      
+      if (data.role === 'shelter') {
+        localStorage.setItem("email", data.email);
+localStorage.setItem("role", data.role);
+
+        console.log("SHELTER EMAIL SAVED:", data.email);
       }
 
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        toast.success('Login successful!');
-        
-        // Store user data
-        localStorage.setItem('user', JSON.stringify({
+      if (formData.rememberMe) {
+        sessionStorage.setItem('user', JSON.stringify({
           userId: data.userId,
           fullName: data.fullName,
           email: data.email,
           role: data.role
         }));
-        
-        if (formData.rememberMe) {
-          sessionStorage.setItem('user', JSON.stringify({
-            userId: data.userId,
-            fullName: data.fullName,
-            email: data.email,
-            role: data.role
-          }));
-        }
-        
-        // Redirect based on role
-        switch(data.role) {
-          case 'pet-owner':
-            navigate('/pet-owner/dashboard');
-            break;
-          case 'shelter':
-            navigate('/shelter/dashboard');
-            break;
-          case 'admin':
-            navigate('/admin/dashboard');
-            break;
-          default:
-            navigate('/');
-        }
-        
-      } else {
-        toast.error(data.error || 'Login failed');
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      toast.error('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+
+      switch (data.role) {
+        case 'pet-owner':
+          navigate('/pet-owner/dashboard');
+          break;
+        case 'shelter':
+          navigate('/shelter/dashboard');
+          break;
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        default:
+          navigate('/');
+      }
+
+    } else {
+      toast.error(data.error || 'Login failed');
     }
-  };
+
+  } catch (err) {
+    console.error('Login error:', err);
+    toast.error('Network error. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">

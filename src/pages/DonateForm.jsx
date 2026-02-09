@@ -37,7 +37,7 @@ export default function DonationDetailsPage() {
     console.log('Fetching donation request with ID:', requestId);
 
     axios
-      .get(`http://localhost:8080/api/donation-requests/${requestId}`)
+      .get(`http://localhost:8084/api/donation-requests/${requestId}`)
       .then((res) => {
         console.log('Backend response:', res.data);
         setDonationRequest(res.data);

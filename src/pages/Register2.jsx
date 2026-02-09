@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PawPrint } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
+import ShelterRegistrationPopup from './ShelterReg';
 
 export default function RegisterPageStep2() {
   const navigate = useNavigate();
@@ -9,9 +10,9 @@ export default function RegisterPageStep2() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(null);
+  const [showShelterPopup, setShowShelterPopup] = useState(false);
 
   useEffect(() => {
-    // Get data from step 1
     const savedData = localStorage.getItem('registerStep1');
     if (savedData) {
       setFormData(JSON.parse(savedData));
@@ -26,21 +27,24 @@ export default function RegisterPageStep2() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!agreedToTerms) {
       toast.error('Please agree to the Terms & Conditions');
       return;
     }
 
+    // Save step1 data for popup
+    localStorage.setItem('registerData', JSON.stringify(formData));
+
+    // 👉 If shelter → open popup ONLY
     if (selectedRole === 'shelter') {
-      // For shelter, redirect to different page/microservice
-      toast.error('Shelter registration is handled separately');
+      setShowShelterPopup(true);
       return;
     }
 
-    // For pet-owner registration
+    // 👉 Pet-owner registration
     setLoading(true);
-    
+
     try {
       const response = await fetch('http://localhost:8080/petowner-app/api/petowners/register', {
         method: 'POST',
@@ -57,14 +61,10 @@ export default function RegisterPageStep2() {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         toast.success('Registration successful! Please login.');
-        
-        // Clear temp data
         localStorage.removeItem('registerStep1');
-        
-        // Redirect to login
         navigate('/login');
       } else {
         toast.error(data.error || 'Registration failed');
@@ -269,7 +269,13 @@ export default function RegisterPageStep2() {
         <footer className="text-center py-8">
           <p className="text-xs text-gray-500">© 2024 PetCare Inc. All rights reserved.</p>
         </footer>
-      </div>
+            </div>
+
+      <ShelterRegistrationPopup
+        isOpen={showShelterPopup}
+        onClose={() => setShowShelterPopup(false)}
+      />
+
     </>
   );
 }
