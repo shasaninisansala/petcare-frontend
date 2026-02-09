@@ -630,8 +630,10 @@ export default function Donations() {
                   <div className="flex items-center gap-3 mb-2">
                     <Building className="w-8 h-8 text-green-500" />
                     <div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
-                      <p className="text-sm text-gray-600">Shelter Dashboard</p>
+                      <div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{loggedInShelter.name}</h2>
+                    <p className="text-sm text-gray-600">Shelter Dashboard</p>
+                  </div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
