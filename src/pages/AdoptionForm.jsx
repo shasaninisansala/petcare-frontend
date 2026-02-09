@@ -42,7 +42,7 @@ export default function AdoptionForm() {
     e.preventDefault();
     setSubmitting(true);
 
-    const formattedShelterId = `REG-00${rawShelterId}`;
+    const formattedShelterId = `${rawShelterId}`;
 
     const postData = {
       adoption_id: adoptionId,
