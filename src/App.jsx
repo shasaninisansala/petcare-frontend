@@ -8,6 +8,9 @@ import { Toaster } from "react-hot-toast";
 import AboutUsPage from "./pages/AboutUs";
 import DonatePage from "./pages/Donation";
 import AdoptionPage from "./pages/Adoption";
+import AdoptionForm from "./pages/AdoptionForm";
+import AdoptionSuccess from "./pages/AdoptionSuccess";
+
 import BreedInformation from "./pages/Breedinfo";
 import DonateForm from "./pages/DonateForm";
 import DonationPaymentPage from "./pages/DonationPaymentPage";
@@ -50,6 +53,10 @@ function App() {
           <Route path="/donate/payment" element={<DonationPaymentPage />} />
           <Route path="/donation-success" element={<DonationSuccess />} />
           <Route path="/adopt" element={<AdoptionPage />} />
+                  <Route path="/adoption-form" element={<AdoptionForm />} />
+                                    <Route path="/adoptionSuccess" element={<AdoptionSuccess />} />
+
+
           <Route path="/breedinfo" element={<BreedInformation />} />
           <Route path="/emergency" element={<EmergencyVetAssistant />} />
 

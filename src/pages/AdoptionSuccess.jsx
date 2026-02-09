@@ -1,7 +1,15 @@
 import React from 'react';
 import { Heart, CheckCircle, MessageCircle, Users, ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-export default function AdoptionSuccess({ referenceId = "#PC-98241", onFindAnother, onBackToHome }) {
+export default function AdoptionSuccess() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Extract real data passed from the Form
+  const referenceId = location.state?.requestId || "#PENDING";
+  const petName = location.state?.petName || "your selected pet";
+
   const nextSteps = [
     {
       step: 1,
@@ -9,7 +17,7 @@ export default function AdoptionSuccess({ referenceId = "#PC-98241", onFindAnoth
       iconBg: 'bg-green-100',
       iconColor: 'text-green-600',
       title: 'Review',
-      description: 'We will check for compatibility with Cooper.'
+      description: `We will check for compatibility with ${petName}.`
     },
     {
       step: 2,
@@ -25,7 +33,7 @@ export default function AdoptionSuccess({ referenceId = "#PC-98241", onFindAnoth
       iconBg: 'bg-purple-100',
       iconColor: 'text-purple-600',
       title: 'Meet & Greet',
-      description: 'Visit Cooper at Happy Paws Shelter.'
+      description: `Visit ${petName} at the local Shelter.`
     }
   ];
 
@@ -50,13 +58,13 @@ export default function AdoptionSuccess({ referenceId = "#PC-98241", onFindAnoth
             Application Submitted Successfully!
           </h1>
           <p className="text-gray-700 leading-relaxed">
-            Thank you for choosing to provide a loving home for . Relevant shelter
-            will review your application within 24–48 hours.
+            Thank you for choosing to provide a loving home for <span className="font-bold">{petName}</span>. 
+            Relevant shelter will review your application within 24–48 hours.
           </p>
         </div>
 
         {/* Reference Details */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-8">
+        <div className="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-100">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600 mb-1">Reference ID</p>
@@ -75,7 +83,6 @@ export default function AdoptionSuccess({ referenceId = "#PC-98241", onFindAnoth
         {/* What's Next */}
         <div className="mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">What's Next?</h2>
-          
           <div className="space-y-6">
             {nextSteps.map((step) => {
               const Icon = step.icon;
@@ -99,13 +106,13 @@ export default function AdoptionSuccess({ referenceId = "#PC-98241", onFindAnoth
         {/* Action Buttons */}
         <div className="flex flex-col gap-3">
           <button
-            onClick={onFindAnother}
+            onClick={() => navigate('/adopt')}
             className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold"
           >
             Find Another One
           </button>
           <button
-            onClick={onBackToHome}
+            onClick={() => navigate('/adopt')}
             className="w-full py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2"
           >
             <ArrowLeft className="w-5 h-5" />
