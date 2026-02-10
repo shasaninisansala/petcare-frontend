@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/CTAAndFooter';
 import axios from 'axios';
-import { Search, MapPin, Filter, Target, TrendingUp, Calendar, Users, Eye, Hash } from 'lucide-react';
+import { Search, Filter, Target, TrendingUp, Calendar, Users, Eye, Image, AlertCircle } from 'lucide-react';
 
 export default function DonatePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('All Regions');
   const [activeFilter, setActiveFilter] = useState('All Shelters');
   const [donationRequests, setDonationRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,18 +61,16 @@ export default function DonatePage() {
   const uniqueShelters = [...new Set(donationRequests.map(req => req.shelterName))].filter(Boolean);
   const filters = ["All Shelters", ...uniqueShelters];
 
-  // Filter donation requests based on search, location, and active filter
+  // Filter donation requests based on search and active filter
   const filteredRequests = donationRequests.filter((req) => {
     const matchesSearch = 
       req.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       req.shelterName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       req.description?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesLocation = selectedLocation === 'All Regions' || req.location?.includes(selectedLocation);
-    
     const matchesFilter = activeFilter === 'All Shelters' || req.shelterName === activeFilter;
     
-    return matchesSearch && matchesLocation && matchesFilter;
+    return matchesSearch && matchesFilter;
   });
 
   // Calculate progress percentage
@@ -113,7 +110,11 @@ export default function DonatePage() {
 
   // View image in modal
   const viewImage = (url) => {
-    setSelectedImage(url || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800');
+    if (!url) {
+      alert('No image available for this campaign');
+      return;
+    }
+    setSelectedImage(url);
     setShowImageModal(true);
   };
 
@@ -138,6 +139,23 @@ export default function DonatePage() {
       console.error('Error refreshing data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Get image URL - FIXED: handles missing images properly
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl || imageUrl.trim() === '') {
+      // Return a default animal welfare image
+      return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=400&fit=crop';
+    }
+    
+    // Check if it's a valid URL
+    try {
+      new URL(imageUrl);
+      return imageUrl;
+    } catch (error) {
+      // If it's not a valid URL, return default
+      return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=400&fit=crop';
     }
   };
 
@@ -216,30 +234,7 @@ export default function DonatePage() {
               </div>
             </div>
 
-            {/* Location Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Location
-                </div>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {['All Regions', 'Colombo', 'Galle', 'Gampaha', 'Kandy'].map((location) => (
-                  <button
-                    key={location}
-                    onClick={() => setSelectedLocation(location)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                      selectedLocation === location
-                        ? 'bg-green-500 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm'
-                    }`}
-                  >
-                    {location}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* NOTE: Location filter removed as per requirements */}
           </div>
         </section>
 
@@ -260,15 +255,14 @@ export default function DonatePage() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No campaigns found</h3>
                 <p className="text-gray-500 max-w-md mx-auto mb-6">
-                  {searchQuery || selectedLocation !== 'All Regions' || activeFilter !== 'All Shelters' 
+                  {searchQuery || activeFilter !== 'All Shelters' 
                     ? 'Try adjusting your search or filters'
                     : 'No donation campaigns available yet. Check back soon!'}
                 </p>
-                {(searchQuery || selectedLocation !== 'All Regions' || activeFilter !== 'All Shelters') && (
+                {(searchQuery || activeFilter !== 'All Shelters') && (
                   <button
                     onClick={() => {
                       setSearchQuery('');
-                      setSelectedLocation('All Regions');
                       setActiveFilter('All Shelters');
                     }}
                     className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
@@ -285,41 +279,47 @@ export default function DonatePage() {
                       {/* Image Section */}
                       <div className="relative h-48 overflow-hidden bg-gray-100">
                         <img 
-                          src={req.imageUrl || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800'} 
+                          src={getImageUrl(req.imageUrl)}
                           alt={req.title}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800';
-                            e.target.className = 'w-full h-full object-contain p-8 bg-gray-50';
+                            // Fallback to default image on error
+                            e.target.src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=400&fit=crop';
+                            e.target.className = 'w-full h-full object-cover';
                           }}
                         />
                         
                         {/* Status Badge */}
                         <div className="absolute top-3 left-3">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            req.status === 'OPEN' ? 'bg-green-500 text-white' :
-                            req.status === 'COMPLETED' ? 'bg-blue-500 text-white' :
+                            req.status === 'OPEN' || req.status === 'ACTIVE' ? 'bg-green-500 text-white' :
+                            req.status === 'SUCCESS' || req.status === 'COMPLETED' ? 'bg-blue-500 text-white' :
                             req.status === 'CANCELLED' ? 'bg-red-500 text-white' :
+                            req.status === 'PENDING' ? 'bg-yellow-500 text-white' :
+                            req.status === 'PROCESSING' ? 'bg-purple-500 text-white' :
                             'bg-gray-500 text-white'
                           }`}>
                             {req.status}
                           </span>
                         </div>
                         
-                        {/* Request ID Badge */}
-                        <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-xs font-mono flex items-center gap-1">
-                          <Hash className="w-3 h-3" />
-                          ID: {req.id}
-                        </div>
+                        {/* Image Icon - Shows if image is missing */}
+                        {(!req.imageUrl || req.imageUrl.trim() === '') && (
+                          <div className="absolute top-3 right-3 bg-black/50 text-white p-1.5 rounded-full">
+                            <Image className="w-4 h-4" />
+                          </div>
+                        )}
                         
-                        {/* View Image Button */}
-                        <button
-                          onClick={() => viewImage(req.imageUrl)}
-                          className="absolute top-12 right-3 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                          title="View Image"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        {/* View Image Button - Only show if image exists */}
+                        {(req.imageUrl && req.imageUrl.trim() !== '') && (
+                          <button
+                            onClick={() => viewImage(req.imageUrl)}
+                            className="absolute top-12 right-3 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                            title="View Image"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
                         
                         {/* Progress Bar Overlay */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
@@ -342,28 +342,33 @@ export default function DonatePage() {
                       <div className="p-5">
                         <div className="flex justify-between items-start mb-3">
                           <h3 className="text-lg font-bold text-gray-900 line-clamp-1">{req.title}</h3>
-                          {/* Request ID inside card */}
+                          
+                          {/* Campaign ID - Hidden from frontend (commented out) */}
+                          {/* 
                           <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            <Hash className="w-3 h-3" />
-                            <span className="font-mono">#{req.id}</span>
+                            <span className="font-mono">Campaign</span>
                           </div>
+                          */}
                         </div>
                         
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{req.description}</p>
                         
-                        {/* Shelter Info */}
+                        {/* Shelter Info - Display only shelter name, NOT shelter ID */}
                         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4" />
-                            <span className="font-medium">{req.shelterName || `Shelter #${req.shelterId}`}</span>
+                            <span className="font-medium">{req.shelterName || 'Animal Shelter'}</span>
                           </div>
+                          {/* Shelter ID - Hidden from frontend (commented out) */}
+                          {/* 
                           <div className="text-xs text-gray-400">
                             Shelter ID: {req.shelterId}
                           </div>
+                          */}
                         </div>
                         
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="grid grid-cols-2 gap-3 mb-4">
                           <div className="bg-gray-50 p-3 rounded-lg">
                             <div className="flex items-center gap-2 text-gray-600 mb-1">
                               <Target className="w-4 h-4" />
@@ -378,39 +383,42 @@ export default function DonatePage() {
                             </div>
                             <p className="font-bold text-green-700">${formatCurrency(req.currentAmount)}</p>
                           </div>
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <div className="flex items-center gap-2 text-blue-600 mb-1">
-                              <Hash className="w-4 h-4" />
-                              <span className="text-xs">Request ID</span>
-                            </div>
-                            <p className="font-bold text-blue-700 font-mono">#{req.id}</p>
-                          </div>
+                          {/* Request ID - Hidden from frontend (removed) */}
                         </div>
                         
                         {/* Date Info */}
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-5">
                           <Calendar className="w-3 h-3" />
                           <span>Created: {formatDate(req.createdAt)}</span>
+                          {req.endDate && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <span>Ends: {formatDate(req.endDate)}</span>
+                            </>
+                          )}
                         </div>
 
                         {/* Donate Button */}
                         <Link
                           to="/donate/form"
                           state={{ 
-                            requestId: req.id,
+                            requestId: req.id, // Internal use only, not displayed
                             requestTitle: req.title,
                             requestDescription: req.description,
                             shelterName: req.shelterName,
                             targetAmount: req.targetAmount,
                             currentAmount: req.currentAmount,
-                            imageUrl: req.imageUrl
+                            imageUrl: getImageUrl(req.imageUrl)
                           }}
                           className="w-full inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition-colors shadow-md hover:shadow-lg"
                         >
                           <span>Donate Now</span>
+                          {/* Campaign ID badge - Hidden from frontend (commented out) */}
+                          {/* 
                           <span className="ml-2 text-xs bg-green-600 px-2 py-0.5 rounded">
-                            Request #{req.id}
+                            Campaign
                           </span>
+                          */}
                         </Link>
                       </div>
                     </div>
@@ -451,8 +459,8 @@ export default function DonatePage() {
                 alt="Campaign"
                 className="max-w-full max-h-[70vh] object-contain rounded"
                 onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800';
-                  e.target.className = 'max-w-full max-h-[70vh] object-contain rounded p-8';
+                  e.target.src = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=400&fit=crop';
+                  e.target.className = 'max-w-full max-h-[70vh] object-contain rounded';
                 }}
               />
             </div>
