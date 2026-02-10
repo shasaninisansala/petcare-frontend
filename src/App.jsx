@@ -35,6 +35,11 @@ import ShelterVerification from "./pages/ShelterVerification";
 import DonationMonitoring from "./pages/DonationMontoring";
 import VerificationReview from "./pages/VerificationReview";
 import EmergencyVetAssistant from "./pages/EmergencyAI";
+import ContactPage from "./components/Contact";
+import HelpCenter from "./components/HelpCenter";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import EmergencyContact from "./components/EmergencyContact";
+import LearnMore from "./components/LearnMore";
 
 function App() {
   return (
@@ -53,8 +58,13 @@ function App() {
           <Route path="/donate/payment" element={<DonationPaymentPage />} />
           <Route path="/donation-success" element={<DonationSuccess />} />
           <Route path="/adopt" element={<AdoptionPage />} />
-                  <Route path="/adoption-form" element={<AdoptionForm />} />
-                                    <Route path="/adoptionSuccess" element={<AdoptionSuccess />} />
+          <Route path="/adoption-form" element={<AdoptionForm />} />
+          <Route path="/adoptionSuccess" element={<AdoptionSuccess />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/helpcenter" element={<HelpCenter />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/emergencycontact" element={<EmergencyContact />} />
+          <Route path="/learn" element={<LearnMore/>} />
 
 
           <Route path="/breedinfo" element={<BreedInformation />} />
