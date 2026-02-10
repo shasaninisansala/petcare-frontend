@@ -1,70 +1,120 @@
-# Getting Started with Create React App
+## 🐾 PetCare Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+A full-stack web platform for **pet adoption, donations, and AI-powered veterinary emergency assistance**.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## ✨ Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- 🐕 My Pets Management 
+- 🏠 Shelter Network
+- 🐕 Pet adoption  
+- 🏥 AI veterinary emergency assistant  
+- 💳 Online donations (Stripe)  
+- 📸 Pet image uploads  
+- 🔐 Authentication (Login / Register)  
+- 📊 Admin dashboard  
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 🧰 Tech Stack
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Frontend
+- React  
+- Tailwind CSS  
+- Axios  
 
-### `npm run build`
+### Backend
+- Spring Boot  
+- REST APIs  
+- Microservices
+### Database
+- MySQL  
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### AI
+- Groq API (LLaMA model)  
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Payments
+- Stripe API  
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+----------------------------------------------------------------------------------------------------------------------------------
 
-### `npm run eject`
+## 📂 Project Structure
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+PetCare/
+│
+├── frontend/ # React application
+├── backend/ # Spring Boot backend
+└── database/ # SQL scripts
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+----------------------------------------------------------------------------------------------------------------------------------
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## ⚙️ Installation & Setup
 
-## Learn More
+## 🔹Frontend (React)
+cd frontend
+npm install
+npm start
+Frontend runs on:
+http://localhost:3000
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 🔹 Backend (Spring Boot)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Clone the repository
+2. Open backend in IntelliJ
+3. Configure `application.properties`:
 
-### Code Splitting
+### properties
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+(already mention in the codes.if need replace follow things)
+spring.datasource.username=root
+spring.datasource.password=yourpassword
 
-### Analyzing the Bundle Size
+groq.api.key=YOUR_GROQ_API_KEY
+groq.api.url=https://api.groq.com/openai/v1/chat/completions
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+stripe.secret.key=YOUR_STRIPE_SECRET_KEY
+Run the application
 
-### Making a Progressive Web App
+Backend runs on:
+pet owner -petowner-ms :http://localhost:8080
+Shelter   -shelter-ms  :http://localhost:8080
+Donation  -donation-ms :http://localhost:8080
+Adoption  -adoption-ms :http://localhost:8080
+AI        -ai          :http://localhost:8086
+Admin     -admin-ms    :http://localhost:8080
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
 
-### Advanced Configuration
+## 🤖 AI Emergency Vet Assistant
+The AI provides structured emergency guidance:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Possible Cause:
 
-### Deployment
+Immediate Care:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Go to Vet Immediately if:
 
-### `npm run build` fails to minify
+Rules:
+Asks animal type & age if missing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Clear, short responses
+
+
+## 🔐 Environment Variables
+groq.api.key
+stripe.secret.key
+
+
+## 👥 Contributors
+
+Team : Master Blacky
+
+Team Members:
+Nigeeth Maleesha
+Shasani Gunawardhane
+Dishan Keminda
+Dnauja Dewnith
+Kulindu Rashmika
+

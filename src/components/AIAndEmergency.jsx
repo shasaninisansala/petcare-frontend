@@ -1,90 +1,67 @@
 import React from 'react';
 import { Sparkles, Brain, Bell, TrendingUp, Shield, Award, Globe, Heart } from 'lucide-react';
+import { Link } from "react-router-dom";
 
 const AIAndEmergency = () => {
   return (
     <section className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 space-y-16">
-        {/* AI Adoption Section */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-12 text-white overflow-hidden relative">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary opacity-10 rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-sm font-medium">AI Powered Intelligence</span>
+        {/* Adoption Highlights Section */}
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-12 text-white overflow-hidden relative">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary opacity-10 rounded-full blur-3xl"></div>
+        
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-sm font-medium">Why Choose PetCare?</span>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Text Content */}
+            <div>
+              <h2 className="text-4xl font-bold mb-6">
+                Bringing Pets and People Together
+              </h2>
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+                At PetCare, we make pet adoption, health care, and community support simple and fun.  
+                Discover stories of happy pets and their families, and get inspired to start your own journey.
+              </p>
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+                From adoption guidance to tips on pet wellness, we are here to ensure that every pet finds a loving home.
+              </p>
+              <Link to ="/adopt" className="w-full p-5 mt-6 bg-white text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                  Explore Adoptable Pets
+                </Link>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-4xl font-bold mb-6">
-                  Smart Adoption Recommendations
-                </h2>
-                <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                  Our proprietary AI matching engine analyzes your lifestyle, home environment, 
-                  and preferences to recommend pets that will thrive in your care.
-                </p>
-
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-start gap-3">
-                    <Brain className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <h4 className="font-semibold mb-1">Smart Reminders</h4>
-                      <p className="text-gray-400 text-sm">
-                        AI predicts health needs based on breed data
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <TrendingUp className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <h4 className="font-semibold mb-1">Behavior Insights</h4>
-                      <p className="text-gray-400 text-sm">
-                        Deep learning for better training advice
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Matching Analysis Card */}
-              <div className="bg-gray-700/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-600">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold">Matching Analysis</h3>
-                  <span className="bg-primary px-3 py-1 rounded-full text-xs font-semibold">
-                    LIVE PROCESSING
-                  </span>
-                </div>
-                
-                <div className="space-y-4">
-                  {[
-                    { label: 'Lifestyle Compatibility', value: 92 },
-                    { label: 'Environment Suitability', value: 87 },
-                    { label: 'Care Requirements Match', value: 95 },
-                  ].map((item, index) => (
-                    <div key={index}>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-300">{item.label}</span>
-                        <span className="font-semibold">{item.value}%</span>
-                      </div>
-                      <div className="h-2 bg-gray-600 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-primary to-green-400 rounded-full transition-all duration-1000"
-                          style={{ width: `${item.value}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button className="w-full mt-6 bg-white text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                  Experience AI Match
-                </button>
-              </div>
+            {/* Images Section */}
+            <div className="grid grid-cols-2 gap-4">
+              <img
+                src="https://i.pinimg.com/1200x/e8/71/37/e87137c454bb13481b91cbeb344a5099.jpg"
+                alt="Happy Pet 1"
+                className="w-full h-40 object-cover rounded-lg shadow-lg hover:scale-105 transition-transform duration-300"
+              />
+              <img
+                src="https://i.pinimg.com/736x/48/18/a3/4818a36f09729967d3cd3520122caffe.jpg"
+                alt="Happy Pet 2"
+                className="w-full h-40 object-cover rounded-lg shadow-lg hover:scale-105 transition-transform duration-300"
+              />
+              <img
+                src="https://i.pinimg.com/1200x/6e/db/bd/6edbbd871d7ad8e82ce055f28ed84e1f.jpg"
+                alt="Happy Pet 3"
+                className="w-full h-40 object-cover rounded-lg shadow-lg hover:scale-105 transition-transform duration-300"
+              />
+              <img
+                src="https://i.pinimg.com/1200x/db/73/03/db7303fcc7ddabc5114bea9e29d29e04.jpg"
+                alt="Happy Pet 4"
+                className="w-full h-40 object-cover rounded-lg shadow-lg hover:scale-105 transition-transform duration-300"
+              />
             </div>
           </div>
         </div>
+      </div>
+
 
         {/* Emergency Vet Section */}
         <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-3xl p-12 text-white">
@@ -100,9 +77,9 @@ const AIAndEmergency = () => {
                 </p>
               </div>
             </div>
-            <button className="bg-white text-cyan-600 px-8 py-4 rounded-lg font-bold hover:bg-cyan-50 transition-colors whitespace-nowrap shadow-lg">
+            <Link to="/emergency" className="bg-white text-cyan-600 px-8 py-4 rounded-lg font-bold hover:bg-cyan-50 transition-colors whitespace-nowrap shadow-lg">
               Get Emergency Vet Help Now
-            </button>
+            </Link>
           </div>
         </div>
 
