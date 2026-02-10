@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Plus, Image as ImageIcon } from 'lucide-react';
+
+const API_URL = 'http://localhost:8086/emergency-app/api/ai/emergency-chat';
 
 export default function AIPetCareModal({ isOpen, onClose }) {
   const [selectedSymptom, setSelectedSymptom] = useState('');
@@ -9,50 +11,64 @@ export default function AIPetCareModal({ isOpen, onClose }) {
       text: "Hello! I'm here to help with your pet's emergency. Please select the issue or describe symptoms."
     }
   ]);
-  const [userAnswer, setUserAnswer] = useState('');
   const [inputText, setInputText] = useState('');
+  const messagesEndRef = useRef(null);
 
   if (!isOpen) return null;
 
   const symptoms = ['Bleeding', 'Vomiting', 'Injury', 'Breathing Issues'];
 
-  const handleSymptomClick = (symptom) => {
+  // Auto-scroll on new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Call AI backend
+  const callAI = async (userMessage) => {
+    try {
+      // Add user message immediately
+      setMessages(prev => [...prev, { type: 'user', text: userMessage }]);
+
+      // Prepare conversation for backend
+      const conversationMessages = messages.map(msg => ({
+        role: msg.type === 'ai' ? 'assistant' : 'user',
+        content: msg.text
+      }));
+
+      conversationMessages.push({ role: 'user', content: userMessage });
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: conversationMessages })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessages(prev => [...prev, { type: 'ai', text: data.text }]);
+      } else {
+        setMessages(prev => [...prev, { type: 'ai', text: "AI error: Unable to process." }]);
+      }
+
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        type: 'ai',
+        text: "Connection problem. Please contact a vet if emergency."
+      }]);
+    }
+  };
+
+  const handleSymptomClick = async (symptom) => {
     setSelectedSymptom(symptom);
-    setMessages([
-      ...messages,
-      { type: 'user', text: symptom }
-    ]);
-
-    // Simulate AI response
-    if (symptom === 'Vomiting') {
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev,
-          {
-            type: 'ai',
-            text: 'Has your pet vomited more than 3 times in the last hour?'
-          }
-        ]);
-      }, 500);
-    }
+    await callAI(symptom);
   };
 
-  const handleAnswerClick = (answer) => {
-    setUserAnswer(answer);
-    setMessages([
-      ...messages,
-      { type: 'user', text: answer }
-    ]);
-  };
-
-  const handleSend = () => {
-    if (inputText.trim()) {
-      setMessages([
-        ...messages,
-        { type: 'user', text: inputText }
-      ]);
-      setInputText('');
-    }
+  const handleSend = async () => {
+    if (!inputText.trim()) return;
+    const text = inputText;
+    setInputText('');
+    await callAI(text);
   };
 
   return (
@@ -86,7 +102,7 @@ export default function AIPetCareModal({ isOpen, onClose }) {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900 mb-1">AI Assistant</p>
                     <div className="bg-gray-50 rounded-lg rounded-tl-none p-4">
-                      <p className="text-sm text-gray-700">{message.text}</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{message.text}</p>
                     </div>
                   </div>
                 </div>
@@ -120,23 +136,7 @@ export default function AIPetCareModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Follow-up Question Buttons */}
-          {selectedSymptom === 'Vomiting' && messages.length === 3 && !userAnswer && (
-            <div className="flex gap-3 ml-11">
-              <button
-                onClick={() => handleAnswerClick('Yes')}
-                className="flex-1 px-6 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => handleAnswerClick('No')}
-                className="flex-1 px-6 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                No
-              </button>
-            </div>
-          )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Footer - Input Area */}

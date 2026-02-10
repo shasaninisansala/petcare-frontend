@@ -44,7 +44,7 @@ export default function AdminSidebar({ adminName = "Admin User", adminRole = "Sy
     localStorage.removeItem('user');
     sessionStorage.removeItem('user');
     setIsDropdownOpen(false);
-    navigate('/login'); // Navigate to login page
+    navigate('/login'); 
   };
 
   return (

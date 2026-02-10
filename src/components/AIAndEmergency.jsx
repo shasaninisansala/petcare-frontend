@@ -8,7 +8,7 @@ const AIAndEmergency = () => {
       <div className="max-w-7xl mx-auto px-6 space-y-16">
         {/* Adoption Highlights Section */}
       <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-12 text-white overflow-hidden relative">
-        {/* Decorative elements */}
+       
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary opacity-10 rounded-full blur-3xl"></div>
         
         <div className="relative z-10">

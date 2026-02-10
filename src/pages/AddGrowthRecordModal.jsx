@@ -18,7 +18,7 @@ export default function AddGrowthRecordModal({ isOpen, onClose, petId, petName =
   // Update pet's current weight and height
   const updatePetStats = async (weight, height) => {
     try {
-      // Get current pet data
+      
       const currentPet = await api.getPetById(petId);
       
       const updatedPetData = {
@@ -26,8 +26,8 @@ export default function AddGrowthRecordModal({ isOpen, onClose, petId, petName =
         species: currentPet.species,
         breed: currentPet.breed || null,
         dateOfBirth: currentPet.dateOfBirth || null,
-        weight: parseFloat(weight),  // Update with new weight
-        height: parseFloat(height),  // Update with new height
+        weight: parseFloat(weight), 
+        height: parseFloat(height),  
         healthNotes: currentPet.healthNotes || null,
         imageUrl: currentPet.imageUrl || null
       };
@@ -40,7 +40,7 @@ export default function AddGrowthRecordModal({ isOpen, onClose, petId, petName =
       }
     } catch (error) {
       console.error('Error updating pet stats:', error);
-      // Don't show error to user as this is secondary operation
+      
     }
   };
 
@@ -69,7 +69,7 @@ export default function AddGrowthRecordModal({ isOpen, onClose, petId, petName =
         toast.success('Growth record added successfully!');
         if (onSuccess) onSuccess();
         onClose();
-        // Reset form
+        
         setFormData({
           measurementDate: '',
           weight: '',
