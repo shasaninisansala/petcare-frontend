@@ -32,10 +32,10 @@ export default function ShelterDashboard() {
         const allRequests = Array.isArray(requestsRes.data) ? requestsRes.data : [];
         const allDonations = Array.isArray(donationsRes.data) ? donationsRes.data : [];
         
-        // Calculate successful adoptions (Status: Approved)
+        
         const approvedCount = allRequests.filter(req => req.status === 'Approved').length;
         
-        // Calculate donation statistics
+       
         const totalReceived = allDonations.reduce((sum, donation) => 
           sum + parseFloat(donation.amount || 0), 0
         );
@@ -180,21 +180,21 @@ export default function ShelterDashboard() {
       label: `Review ${counts.requests} Requests`,
       iconBg: 'bg-green-50',
       iconColor: 'text-green-600',
-      link: '/adoption-requests'
+      link: '/shelter/adoption-requests'
     },
     {
       icon: HandHeart,
       label: 'Manage Donations',
       iconBg: 'bg-green-50',
       iconColor: 'text-green-600',
-      link: '/donations'
+      link: '/shelter/donations'
     },
     {
       icon: PlusCircle,
       label: 'Add Adoption',
       iconBg: 'bg-green-50',
       iconColor: 'text-green-600',
-      link: '/add-adoption'
+      link: '/shelter/adoption-listings'
     }
   ];
 
@@ -336,10 +336,9 @@ export default function ShelterDashboard() {
   // Handle quick action clicks
   const handleQuickActionClick = (action) => {
     if (action.link) {
-      // In a real app, you would use React Router navigation
-      // For now, we'll show an alert
+      
       alert(`Navigating to: ${action.label}`);
-      // window.location.href = action.link; // Uncomment for actual navigation
+      
     }
   };
 
