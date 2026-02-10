@@ -52,10 +52,7 @@ const Features = () => {
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Everything you need to manage your pet's life in one place, from medical records to community support.
           </p>
-          <button className="mt-6 text-primary font-semibold inline-flex items-center gap-2 hover:gap-3 transition-all group">
-            View All Features
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          
         </div>
 
         {/* Features Grid */}

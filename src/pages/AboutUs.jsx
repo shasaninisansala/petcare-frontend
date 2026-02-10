@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/CTAAndFooter';
+import { Link } from "react-router-dom";
 
 export default function AboutUsPage() {
   return (
@@ -21,9 +22,9 @@ export default function AboutUsPage() {
             <p className="text-lg sm:text-xl text-white mb-8 max-w-3xl">
               A professional and heartwarming platform dedicated to unified pet care across the globe.
             </p>
-            <button className="bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 rounded-lg transition duration-200">
+            <Link to="/learn" className="bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 rounded-lg transition duration-200">
               Learn More
-            </button>
+            </Link>
           </div>
         </section>
 

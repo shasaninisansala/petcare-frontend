@@ -165,18 +165,42 @@ export default function ShelterRegistrationPopup({ isOpen, onClose, onSubmit }) 
                   required
                 />
               </div>
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   License Number
                 </label>
+
                 <input
                   type="text"
                   name="licenseNumber"
                   value={formData.licenseNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    // Allow only letters and numbers
+                    if (/^[a-zA-Z0-9]*$/.test(value)) {
+                      setFormData(prev => ({
+                        ...prev,
+                        licenseNumber: value
+                      }));
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg 
+                            focus:ring-2 focus:ring-green-500 focus:border-transparent 
+                            outline-none transition"
                   required
                 />
+
+                {/* Tooltip */}
+                <div className="absolute top-1/2 right-3 -translate-y-1/2 group">
+                  <span className="cursor-pointer text-gray-400">ⓘ</span>
+
+                  <div className="absolute right-0 mt-2 w-56 p-2 text-xs text-white bg-black rounded-lg 
+                                  opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                    Only letters and numbers allowed.  
+                    No special characters ( / - @ ! ).
+                  </div>
+                </div>
               </div>
             </div>
 

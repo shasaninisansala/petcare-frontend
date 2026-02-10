@@ -18,9 +18,9 @@ const Hero = () => {
               new best friend.
             </p>
             <div className="flex gap-4 pt-4">
-              <button className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+              <Link to= "/adopt" className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                 Adopt a Pet
-              </button>
+              </Link>
               <Link
                 to="/register"
                 className="border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition-all inline-block text-center"
