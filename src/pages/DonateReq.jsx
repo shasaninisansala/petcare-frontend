@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Search, Download, PlusCircle, Edit, X, Upload, Camera, Building, RefreshCw } from 'lucide-react';
+import { Search, Download, PlusCircle, Edit, X, Upload, Camera, Building, RefreshCw, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
 export default function Donations() {
@@ -9,6 +9,7 @@ export default function Donations() {
   
   // File upload ref
   const fileInputRef = useRef(null);
+  const shelterNameInputRef = useRef(null);
 
   // Request and Update modals
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -36,7 +37,7 @@ export default function Donations() {
     imageFile: null,
     targetAmount: '',
     currentAmount: '0',
-    status: 'OPEN',
+    status: 'PENDING', // Using PENDING for new campaigns
     startDate: new Date().toISOString().split('T')[0],
     endDate: ''
   });
@@ -52,7 +53,7 @@ export default function Donations() {
     imageFile: null,
     targetAmount: '',
     currentAmount: '',
-    status: 'OPEN',
+    status: 'PENDING',
     startDate: '',
     endDate: ''
   });
@@ -60,6 +61,7 @@ export default function Donations() {
   // State to control showing shelter ID input modal
   const [showShelterInput, setShowShelterInput] = useState(false);
   const [shelterIdInput, setShelterIdInput] = useState('');
+  const [shelterNameInput, setShelterNameInput] = useState('');
 
   // =========================
   // FETCH DATA FOR THIS SHELTER (TEMPORARY)
@@ -69,7 +71,7 @@ export default function Donations() {
     
     setIsLoading(true);
     try {
-      console.log(`📊 Fetching data for shelter ID: ${shelterId}`);
+      console.log(`📊 Fetching data for shelter License: ${shelterId}`);
       
       // Clear previous data first
       setDonations([]);
@@ -128,8 +130,10 @@ export default function Donations() {
       setShelterTotalReceived(total);
       setShelterThisMonth(monthTotal);
       
-      // Count active campaigns
-      const active = (requestsRes.data || []).filter(req => req.status === 'OPEN').length;
+      // Count active campaigns (now includes PENDING, PROCESSING, and ACTIVE)
+      const active = (requestsRes.data || []).filter(req => 
+        req.status === 'PENDING' || req.status === 'PROCESSING' || req.status === 'ACTIVE'
+      ).length;
       setActiveCampaigns(active);
       
       console.log(`✅ Loaded ${(donationsRes.data || []).length} donations for shelter ${shelterId}`);
@@ -186,8 +190,10 @@ export default function Donations() {
       setShelterTotalReceived(shelterTotal);
       setShelterThisMonth(shelterMonthTotal);
       
-      // Count active campaigns
-      const active = shelterRequests.filter(req => req.status === 'OPEN').length;
+      // Count active campaigns (now includes PENDING, PROCESSING, and ACTIVE)
+      const active = shelterRequests.filter(req => 
+        req.status === 'PENDING' || req.status === 'PROCESSING' || req.status === 'ACTIVE'
+      ).length;
       setActiveCampaigns(active);
       
       console.log(`✅ Filtered ${shelterDonations.length} donations for shelter ${shelterId}`);
@@ -203,26 +209,37 @@ export default function Donations() {
   // =========================
   const loadShelterData = async () => {
     if (!shelterIdInput || shelterIdInput.trim() === '') {
-      alert('Please enter a valid Shelter ID');
+      alert('Please enter a valid Shelter License Number');
+      return false;
+    }
+
+    if (!shelterNameInput || shelterNameInput.trim() === '') {
+      alert('Please enter your Shelter Name');
+      if (shelterNameInputRef.current) {
+        shelterNameInputRef.current.focus();
+      }
       return false;
     }
 
     const shelterId = shelterIdInput.trim().toUpperCase();
+    const shelterName = shelterNameInput.trim();
+    
     setIsLoading(true);
 
     try {
-      console.log(`🔍 Loading data for shelter: ${shelterId}`);
+      console.log(`🔍 Loading data for shelter: ${shelterName} (${shelterId})`);
       
-      // Create shelter object with entered ID
+      // Create shelter object with entered ID and name
       const shelterData = {
         id: shelterId,
-        name: `Shelter ${shelterId}`,
-        registrationNumber: shelterId
+        name: shelterName,
+        licenseNumber: shelterId
       };
       
       // Update state (no localStorage)
       setCurrentShelter(shelterData);
       setShelterIdInput('');
+      setShelterNameInput('');
       setShowShelterInput(false);
       
       // Auto-populate request form
@@ -235,7 +252,7 @@ export default function Donations() {
       // Fetch data for this shelter
       await fetchAllData(shelterData.id);
       
-      console.log(`✅ Loaded data for shelter ${shelterId}`);
+      console.log(`✅ Loaded data for shelter ${shelterName} (${shelterId})`);
       return true;
       
     } catch (error) {
@@ -273,7 +290,7 @@ export default function Donations() {
   // Refresh data
   const handleRefresh = () => {
     if (currentShelter) {
-      console.log(`🔄 Refreshing data for shelter ${currentShelter.id}`);
+      console.log(`🔄 Refreshing data for shelter ${currentShelter.name}`);
       fetchAllData(currentShelter.id);
     }
   };
@@ -372,7 +389,9 @@ export default function Donations() {
     }
   };
 
-  // Submit new donation request
+  // =========================
+  // SUBMIT NEW DONATION REQUEST WITH CONTINUOUS ENTRY
+  // =========================
   const submitRequest = async (e) => {
     e.preventDefault();
     
@@ -384,6 +403,27 @@ export default function Donations() {
     }
     
     try {
+      // Basic validation
+      if (!requestForm.title.trim()) {
+        alert('Please enter a campaign title');
+        return;
+      }
+      
+      if (!requestForm.description.trim()) {
+        alert('Please enter a campaign description');
+        return;
+      }
+      
+      if (!requestForm.targetAmount || parseFloat(requestForm.targetAmount) <= 0) {
+        alert('Please enter a valid target amount');
+        return;
+      }
+      
+      if (!requestForm.startDate) {
+        alert('Please select a start date');
+        return;
+      }
+      
       if (requestForm.endDate && requestForm.startDate > requestForm.endDate) {
         alert('End date must be after start date');
         return;
@@ -403,26 +443,42 @@ export default function Donations() {
         ...requestForm,
         shelterId: currentShelter.id,
         shelterName: currentShelter.name,
-        imageUrl: finalImageUrl,
+        imageUrl: finalImageUrl || '/images/default-donation.jpg',
         targetAmount: parseFloat(requestForm.targetAmount),
-        currentAmount: parseFloat(requestForm.currentAmount) || 0
+        currentAmount: 0, // Always start with 0 for new campaigns
+        status: 'PENDING' // New campaigns start as PENDING
       };
 
       delete payload.imageFile;
 
+      console.log('📤 Submitting campaign:', payload);
+      
       const res = await axios.post('http://localhost:8084/api/donation-requests', payload);
+      
+      // Add new campaign to the list
       setDonationRequests([res.data, ...donationRequests]);
-      setShowRequestForm(false);
+      
+      // Update stats
+      const activeCount = donationRequests.filter(req => 
+        req.status === 'PENDING' || req.status === 'PROCESSING' || req.status === 'ACTIVE'
+      ).length + 1;
+      setActiveCampaigns(activeCount);
+      
+      // Don't close the form for continuous entry
       resetRequestForm();
-      alert('Campaign created successfully!');
-      handleRefresh();
+      
+      // Show success message but keep form open
+      alert('Campaign created successfully! You can create another campaign.');
+      
     } catch (error) {
       console.error('Error creating donation request:', error);
       alert(`Failed to create campaign: ${error.response?.data?.message || error.message}`);
     }
   };
 
-  // Submit update donation request
+  // =========================
+  // SUBMIT UPDATE DONATION REQUEST
+  // =========================
   const submitUpdate = async (e) => {
     e.preventDefault();
     
@@ -434,6 +490,22 @@ export default function Donations() {
     }
     
     try {
+      // Basic validation
+      if (!updateForm.title.trim()) {
+        alert('Please enter a campaign title');
+        return;
+      }
+      
+      if (!updateForm.description.trim()) {
+        alert('Please enter a campaign description');
+        return;
+      }
+      
+      if (!updateForm.targetAmount || parseFloat(updateForm.targetAmount) <= 0) {
+        alert('Please enter a valid target amount');
+        return;
+      }
+      
       if (updateForm.endDate && updateForm.startDate > updateForm.endDate) {
         alert('End date must be after start date');
         return;
@@ -448,28 +520,132 @@ export default function Donations() {
         }
       }
 
+      const currentAmount = parseFloat(updateForm.currentAmount) || 0;
+      const targetAmount = parseFloat(updateForm.targetAmount);
+      
+      // Determine status based on donations
+      let newStatus = updateForm.status;
+      if (currentAmount > 0 && currentAmount < targetAmount) {
+        newStatus = 'PROCESSING'; // Partial donations received
+      } else if (currentAmount >= targetAmount) {
+        newStatus = 'ACTIVE'; // Target reached, waiting for admin approval
+      }
+
       const payload = {
         ...updateForm,
-        imageUrl: finalImageUrl,
-        targetAmount: parseFloat(updateForm.targetAmount),
-        currentAmount: parseFloat(updateForm.currentAmount) || 0
+        imageUrl: finalImageUrl || updateForm.imageUrl || '/images/default-donation.jpg',
+        targetAmount: targetAmount,
+        currentAmount: currentAmount,
+        status: newStatus
       };
 
       delete payload.imageFile;
 
+      console.log('📤 Updating campaign:', payload);
+      
       const res = await axios.put(
         `http://localhost:8084/api/donation-requests/${updateForm.id}`,
         payload
       );
-      setDonationRequests(
-        donationRequests.map((d) => (d.id === updateForm.id ? res.data : d))
+      
+      // Update the campaign in the list
+      const updatedRequests = donationRequests.map((d) => 
+        d.id === updateForm.id ? res.data : d
       );
+      setDonationRequests(updatedRequests);
+      
+      // Update active campaigns count
+      const activeCount = updatedRequests.filter(req => 
+        req.status === 'PENDING' || req.status === 'PROCESSING' || req.status === 'ACTIVE'
+      ).length;
+      setActiveCampaigns(activeCount);
+      
+      // Update total received if this campaign received donations
+      if (currentAmount > 0) {
+        // Find all donations for this campaign and update total
+        const campaignDonations = donations.filter(d => 
+          d.donationRequestId === updateForm.id
+        );
+        const campaignTotal = campaignDonations.reduce((sum, d) => 
+          sum + parseFloat(d.amount || 0), 0
+        );
+        
+        // Recalculate shelter total
+        const newTotal = donations.reduce((sum, d) => {
+          if (d.donationRequestId === updateForm.id) {
+            return sum + campaignTotal;
+          }
+          return sum + parseFloat(d.amount || 0);
+        }, 0);
+        
+        setShelterTotalReceived(newTotal);
+      }
+      
       setShowUpdateForm(false);
       resetUpdateForm();
       alert('Campaign updated successfully!');
-      handleRefresh();
+      
     } catch (error) {
       console.error('Error updating donation request:', error);
+      alert(`Failed to update campaign: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  // =========================
+  // MARK CAMPAIGN AS SUCCESS (ADMIN FUNCTION)
+  // =========================
+  const markCampaignAsSuccess = async (campaignId) => {
+    try {
+      // Find the campaign
+      const campaign = donationRequests.find(req => req.id === campaignId);
+      if (!campaign) {
+        alert('Campaign not found');
+        return;
+      }
+      
+      const currentAmount = parseFloat(campaign.currentAmount || 0);
+      const targetAmount = parseFloat(campaign.targetAmount || 1);
+      
+      // Check if target amount has been reached
+      if (currentAmount < targetAmount) {
+        alert(`Cannot mark as SUCCESS yet. Current: $${currentAmount}, Target: $${targetAmount}. Campaign needs to reach its target first.`);
+        return;
+      }
+      
+      if (!window.confirm(`Mark campaign "${campaign.title}" as SUCCESS?\n\nThis will complete the campaign and show it as successfully completed.`)) {
+        return;
+      }
+      
+      const payload = {
+        ...campaign,
+        status: 'SUCCESS'
+      };
+      
+      const res = await axios.put(
+        `http://localhost:8084/api/donation-requests/${campaignId}`,
+        payload
+      );
+      
+      // Update the campaign in the list
+      const updatedRequests = donationRequests.map((d) => 
+        d.id === campaignId ? res.data : d
+      );
+      setDonationRequests(updatedRequests);
+      
+      // Update active campaigns count
+      const activeCount = updatedRequests.filter(req => 
+        req.status === 'PENDING' || req.status === 'PROCESSING' || req.status === 'ACTIVE'
+      ).length;
+      setActiveCampaigns(activeCount);
+      
+      // Show success message
+      alert(`Campaign "${campaign.title}" marked as SUCCESS!\n\nTotal raised: $${formatCurrency(currentAmount)}`);
+      
+      // Refresh to show updated status
+      handleRefresh();
+      
+    } catch (error) {
+      console.error('Error marking campaign as success:', error);
       alert(`Failed to update campaign: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -485,10 +661,15 @@ export default function Donations() {
       imageFile: null,
       targetAmount: '',
       currentAmount: '0',
-      status: 'OPEN',
+      status: 'PENDING',
       startDate: new Date().toISOString().split('T')[0],
       endDate: ''
     });
+    
+    // Clear file input if exists
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const resetUpdateForm = () => {
@@ -502,7 +683,7 @@ export default function Donations() {
       imageFile: null,
       targetAmount: '',
       currentAmount: '',
-      status: 'OPEN',
+      status: 'PENDING',
       startDate: '',
       endDate: ''
     });
@@ -520,10 +701,11 @@ export default function Donations() {
       imageFile: null,
       targetAmount: request.targetAmount || '',
       currentAmount: request.currentAmount || '',
-      status: request.status || 'OPEN',
+      status: request.status || 'PENDING',
       startDate: request.startDate?.split('T')[0] || '',
       endDate: request.endDate?.split('T')[0] || ''
     });
+    setShowUpdateForm(true);
   };
 
   // Format currency
@@ -534,6 +716,48 @@ export default function Donations() {
     });
   };
 
+  // Get status badge color and icon
+  const getStatusInfo = (status) => {
+    switch(status) {
+      case 'PENDING':
+        return {
+          color: 'bg-yellow-100 text-yellow-800',
+          icon: <Clock className="w-3 h-3 mr-1" />,
+          label: 'PENDING'
+        };
+      case 'PROCESSING':
+        return {
+          color: 'bg-blue-100 text-blue-800',
+          icon: <AlertCircle className="w-3 h-3 mr-1" />,
+          label: 'PROCESSING'
+        };
+      case 'ACTIVE':
+        return {
+          color: 'bg-purple-100 text-purple-800',
+          icon: <CheckCircle className="w-3 h-3 mr-1" />,
+          label: 'ACTIVE'
+        };
+      case 'SUCCESS':
+        return {
+          color: 'bg-green-100 text-green-800',
+          icon: <CheckCircle className="w-3 h-3 mr-1" />,
+          label: 'SUCCESS'
+        };
+      case 'CANCELLED':
+        return {
+          color: 'bg-red-100 text-red-800',
+          icon: <X className="w-3 h-3 mr-1" />,
+          label: 'CANCELLED'
+        };
+      default:
+        return {
+          color: 'bg-gray-100 text-gray-800',
+          icon: null,
+          label: status || 'UNKNOWN'
+        };
+    }
+  };
+
   // Filter donations based on search
   const filteredDonations = donations.filter((d) =>
     d.donorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -541,46 +765,71 @@ export default function Donations() {
   );
 
   // =========================
-  // SHELTER INPUT MODAL - UPDATED FOR TEMPORARY LOADING
+  // SHELTER INPUT MODAL - UPDATED
   // =========================
   const ShelterInputModal = () => (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
       <div className="bg-white p-6 rounded-xl w-full max-w-md">
         <div className="flex items-center gap-3 mb-4">
           <Building className="w-8 h-8 text-green-500" />
-          <h2 className="text-xl font-bold text-gray-900">Enter Shelter ID to Load Data</h2>
+          <h2 className="text-xl font-bold text-gray-900">Load Shelter Data</h2>
         </div>
         
         <p className="text-gray-600 mb-6">
-          Enter your Shelter ID to load and view your donation data temporarily.
+          Enter your Shelter License Number and Name to load and view your donation data temporarily.
         </p>
         
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shelter ID
+              Shelter License Number *
             </label>
             <input
               type="text"
-              placeholder="Enter Shelter ID"
+              placeholder="Enter License Number"
               className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               value={shelterIdInput}
-              onChange={(e) => setShelterIdInput(e.target.value.toUpperCase())}
+              onChange={(e) => setShelterIdInput(e.target.value)}
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
+                  if (shelterNameInputRef.current) {
+                    shelterNameInputRef.current.focus();
+                  }
+                }
+              }}
+              autoFocus
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter your official shelter license number
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Shelter Name *
+            </label>
+            <input
+              ref={shelterNameInputRef}
+              type="text"
+              placeholder="Enter your Shelter Name"
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              value={shelterNameInput}
+              onChange={(e) => setShelterNameInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && shelterIdInput.trim() && shelterNameInput.trim()) {
                   loadShelterData();
                 }
               }}
             />
             <p className="text-xs text-gray-500 mt-1">
-              Data will be loaded temporarily for viewing only
+              Enter the name of your shelter
             </p>
           </div>
           
           <div className="flex gap-3 pt-2">
             <button
               onClick={loadShelterData}
-              disabled={isLoading || !shelterIdInput.trim()}
+              disabled={isLoading || !shelterIdInput.trim() || !shelterNameInput.trim()}
               className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Loading...' : 'Load Data'}
@@ -590,6 +839,7 @@ export default function Donations() {
               onClick={() => {
                 setShowShelterInput(false);
                 setShelterIdInput('');
+                setShelterNameInput('');
               }}
               className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
@@ -602,13 +852,64 @@ export default function Donations() {
   );
 
   // =========================
-  // RENDER - MAINTAINING ORIGINAL STYLE
+  // CAMPAIGN PROGRESS COMPONENT
+  // =========================
+  const CampaignProgress = ({ campaign }) => {
+    const currentAmount = parseFloat(campaign.currentAmount || 0);
+    const targetAmount = parseFloat(campaign.targetAmount || 1);
+    const progress = Math.min((currentAmount / targetAmount) * 100, 100);
+    const statusInfo = getStatusInfo(campaign.status);
+    
+    return (
+      <div className="mt-3">
+        <div className="flex justify-between text-sm mb-1">
+          <span className="text-gray-600">
+            Raised: ${formatCurrency(currentAmount)} of ${formatCurrency(targetAmount)}
+          </span>
+          <span className="font-medium">{progress.toFixed(1)}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full ${
+              campaign.status === 'SUCCESS' ? 'bg-green-500' : 
+              campaign.status === 'PENDING' ? 'bg-yellow-500' : 
+              campaign.status === 'PROCESSING' ? 'bg-blue-500' : 
+              campaign.status === 'ACTIVE' ? 'bg-purple-500' : 
+              campaign.status === 'CANCELLED' ? 'bg-red-500' : 'bg-gray-300'
+            }`}
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between mt-1">
+          <span className="text-xs text-gray-500">
+            {campaign.status === 'PENDING' ? 'Awaiting donations' :
+             campaign.status === 'PROCESSING' ? 'Partial donations received' :
+             campaign.status === 'ACTIVE' ? 'Target reached - Ready for admin approval' :
+             campaign.status === 'SUCCESS' ? 'Campaign completed successfully' :
+             campaign.status === 'CANCELLED' ? 'Campaign cancelled' :
+             'Unknown status'}
+          </span>
+          {campaign.status === 'ACTIVE' && (
+            <button
+              onClick={() => markCampaignAsSuccess(campaign.id)}
+              className="text-xs text-green-600 hover:text-green-700 underline"
+            >
+              Mark as Success
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // =========================
+  // RENDER
   // =========================
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
       <div className="p-4 md:p-8">
 
-        {/* Header with Shelter Info - UPDATED FOR TEMPORARY DATA */}
+        {/* Header with Shelter Info */}
         <div className="mb-6 md:mb-8">
           <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm mb-4">
             {currentShelter ? (
@@ -623,8 +924,8 @@ export default function Donations() {
                   </div>
                   <div className="flex flex-wrap gap-4 mt-3 text-sm">
                     <div>
-                      <span className="text-gray-500">Reg No:</span>
-                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">{currentShelter.id}</span>
+                      <span className="text-gray-500">License No:</span>
+                      <span className="ml-2 font-mono bg-gray-100 px-2 py-1 rounded">{currentShelter.licenseNumber}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
@@ -638,7 +939,11 @@ export default function Donations() {
                         Clear Data
                       </button>
                       <button
-                        onClick={() => setShowShelterInput(true)}
+                        onClick={() => {
+                          setShowShelterInput(true);
+                          setShelterIdInput('');
+                          setShelterNameInput('');
+                        }}
                         className="text-blue-600 hover:text-blue-700 text-sm underline"
                         title="Load different shelter data"
                       >
@@ -695,6 +1000,21 @@ export default function Donations() {
                         setShowShelterInput(true);
                         return;
                       }
+                      // Show campaign selection first
+                      setUpdateForm({
+                        id: '',
+                        shelterId: currentShelter.id,
+                        shelterName: currentShelter.name,
+                        title: '',
+                        description: '',
+                        imageUrl: '',
+                        imageFile: null,
+                        targetAmount: '',
+                        currentAmount: '',
+                        status: 'PENDING',
+                        startDate: '',
+                        endDate: ''
+                      });
                       setShowUpdateForm(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors"
@@ -725,7 +1045,11 @@ export default function Donations() {
 
                 <div className="flex flex-wrap gap-2 md:gap-3">
                   <button 
-                    onClick={() => setShowShelterInput(true)}
+                    onClick={() => {
+                      setShowShelterInput(true);
+                      setShelterIdInput('');
+                      setShelterNameInput('');
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors"
                   >
                     <Building className="w-4 h-4" />
@@ -792,7 +1116,7 @@ export default function Donations() {
                   ${formatCurrency(shelterTotalReceived)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {currentShelter ? 'All donations to your campaigns' : 'Load Shelter ID to view data'}
+                  {currentShelter ? 'All donations to your campaigns' : 'Load Shelter License to view data'}
                 </p>
               </div>
               
@@ -807,7 +1131,7 @@ export default function Donations() {
                   ${formatCurrency(shelterThisMonth)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {currentShelter ? 'Donations this month' : 'Load Shelter ID to view monthly data'}
+                  {currentShelter ? 'Donations this month' : 'Load Shelter License to view monthly data'}
                 </p>
               </div>
               
@@ -827,13 +1151,46 @@ export default function Donations() {
               </div>
             </div>
 
+            {/* Campaigns Section */}
+            {currentShelter && donationRequests.length > 0 && (
+              <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm mb-6">
+                <h3 className="text-lg font-semibold mb-4">Campaigns Status</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {donationRequests.map(campaign => {
+                    const statusInfo = getStatusInfo(campaign.status);
+                    return (
+                      <div key={campaign.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-gray-900 truncate">{campaign.title}</h4>
+                          <span className={`flex items-center px-2 py-1 rounded-full text-xs font-semibold ${statusInfo.color}`}>
+                            {statusInfo.icon}
+                            {statusInfo.label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{campaign.description}</p>
+                        <CampaignProgress campaign={campaign} />
+                        <div className="flex justify-end mt-3">
+                          <button
+                            onClick={() => selectDonationForUpdate(campaign)}
+                            className="text-xs text-blue-600 hover:text-blue-700 underline"
+                          >
+                            Edit Campaign
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Search Bar - Show always */}
             <div className="bg-white p-4 md:p-6 rounded-xl border shadow-sm mb-6">
               <div className="flex gap-3">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
-                    placeholder={currentShelter ? "Search by donor name or campaign ID" : "Load Shelter ID first to search"}
+                    placeholder={currentShelter ? "Search by donor name or campaign ID" : "Load Shelter License first to search"}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     disabled={!currentShelter}
@@ -873,10 +1230,14 @@ export default function Donations() {
                     <Building className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p className="text-lg font-medium mb-3">No Shelter Data Loaded</p>
                     <p className="text-sm text-gray-600 mb-6 max-w-md">
-                      Enter your Shelter ID to temporarily load and view your donation campaigns and history.
+                      Enter your Shelter License Number and Name to temporarily load and view your donation campaigns and history.
                     </p>
                     <button
-                      onClick={() => setShowShelterInput(true)}
+                      onClick={() => {
+                        setShowShelterInput(true);
+                        setShelterIdInput('');
+                        setShelterNameInput('');
+                      }}
                       className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors flex items-center gap-2"
                     >
                       <Building className="w-5 h-5" />
@@ -964,8 +1325,10 @@ export default function Donations() {
                                   ? 'bg-green-100 text-green-800'
                                   : d.status === 'PENDING'
                                   ? 'bg-yellow-100 text-yellow-800'
-                                  : d.status === 'OPEN'
+                                  : d.status === 'PROCESSING'
                                   ? 'bg-blue-100 text-blue-800'
+                                  : d.status === 'ACTIVE'
+                                  ? 'bg-purple-100 text-purple-800'
                                   : 'bg-red-100 text-red-800'
                               }`}
                             >
@@ -995,7 +1358,12 @@ export default function Donations() {
           <div className="fixed inset-0 bg-black/30 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-xl w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Donation Receipt</h2>
+                <div>
+                  <h2 className="text-xl font-bold">Donation Receipt</h2>
+                  {currentShelter && (
+                    <p className="text-sm text-gray-600">Shelter: {currentShelter.name}</p>
+                  )}
+                </div>
                 <button
                   onClick={() => setSelectedDonation(null)}
                   className="text-gray-500 hover:text-gray-700"
@@ -1024,12 +1392,20 @@ export default function Donations() {
                   <span className="font-medium">Campaign ID:</span>
                   <span>{selectedDonation.donationRequestId || 'N/A'}</span>
                 </div>
+                {/* SHELTER LICENSE IN RECEIPT */}
+                {currentShelter && (
+                  <div className="flex justify-between">
+                    <span className="font-medium">Beneficiary License:</span>
+                    <span className="font-mono">{currentShelter.licenseNumber}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="font-medium">Status:</span>
                   <span className={`px-2 py-1 rounded text-xs ${
                     selectedDonation.status === 'SUCCESS' ? 'bg-green-100 text-green-800' :
                     selectedDonation.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                    selectedDonation.status === 'OPEN' ? 'bg-blue-100 text-blue-800' :
+                    selectedDonation.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                    selectedDonation.status === 'ACTIVE' ? 'bg-purple-100 text-purple-800' :
                     'bg-red-100 text-red-800'
                   }`}>
                     {selectedDonation.status}
@@ -1066,7 +1442,7 @@ export default function Donations() {
           <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Request Donation</h2>
+                <h2 className="text-xl font-bold">Create New Campaign</h2>
                 <button
                   onClick={() => {
                     setShowRequestForm(false);
@@ -1086,7 +1462,10 @@ export default function Donations() {
                       <Building className="w-6 h-6 text-green-500" />
                       <div>
                         <p className="font-medium">Creating campaign for: {currentShelter.name}</p>
-                        <p className="text-sm text-gray-600">Shelter ID: {currentShelter.id}</p>
+                        <p className="text-sm text-gray-600">Shelter License No: {currentShelter.licenseNumber}</p>
+                        <p className="text-xs text-green-600 mt-1">
+                          ⓘ New campaigns start as PENDING. Status will update automatically when donations are received.
+                        </p>
                       </div>
                     </div>
                     <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full">
@@ -1229,6 +1608,9 @@ export default function Donations() {
                         className="w-full border p-2.5 pl-8 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Campaign will start as PENDING with $0 received
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1260,7 +1642,30 @@ export default function Donations() {
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t">
+                {/* Status Info */}
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Campaign Status Flow</p>
+                      <p className="text-xs text-yellow-700">
+                        New campaigns start as <span className="font-semibold">PENDING</span>:
+                      </p>
+                      <ul className="text-xs text-yellow-700 mt-1 list-disc pl-4">
+                        <li><span className="font-medium">PENDING</span>: No donations received yet</li>
+                        <li><span className="font-medium">PROCESSING</span>: Partial donations received</li>
+                        <li><span className="font-medium">ACTIVE</span>: Target amount reached (admin can mark as SUCCESS)</li>
+                        <li><span className="font-medium">SUCCESS</span>: Campaign completed successfully (admin approved)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hidden shelter fields */}
+                <input type="hidden" name="shelterId" value={currentShelter?.id || ''} />
+                <input type="hidden" name="shelterName" value={currentShelter?.name || ''} />
+
+                <div className="flex justify-between gap-3 pt-4 border-t">
                   <button
                     type="button"
                     onClick={() => {
@@ -1269,14 +1674,23 @@ export default function Donations() {
                     }}
                     className="px-5 py-2.5 border rounded-lg hover:bg-gray-50 font-medium transition-colors"
                   >
-                    Cancel
+                    Cancel & Close
                   </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors"
-                  >
-                    Submit
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={resetRequestForm}
+                      className="px-5 py-2.5 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50 font-medium transition-colors"
+                    >
+                      Clear Form
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors"
+                    >
+                      Create & Add Another
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -1288,7 +1702,7 @@ export default function Donations() {
           <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Update Donation Request</h2>
+                <h2 className="text-xl font-bold">Update Campaign</h2>
                 <button
                   onClick={() => {
                     setShowUpdateForm(false);
@@ -1305,73 +1719,45 @@ export default function Donations() {
                   <p className="text-gray-600 mb-3">Select a campaign to update:</p>
                   {donationRequests.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      No donation campaigns available
+                      No campaigns available for {currentShelter?.name}
                     </div>
                   ) : (
-                    donationRequests.map(req => (
-                      <button
-                        key={req.id}
-                        onClick={() => selectDonationForUpdate(req)}
-                        className="w-full border p-3 rounded-lg hover:bg-gray-100 text-left flex items-center gap-3 transition-colors"
-                      >
-                        <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
-                          <img 
-                            src={req.imageUrl || '/images/default-donation.jpg'} 
-                            alt={req.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = '/images/default-donation.jpg';
-                              e.target.className = 'w-full h-full object-contain p-1';
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{req.title}</p>
-                          <p className="text-sm text-gray-500 truncate">
-                            {req.shelterName} • ${formatCurrency(req.targetAmount)}
-                          </p>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            req.status === 'OPEN' ? 'bg-green-100 text-green-800' :
-                            req.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {req.status}
-                          </span>
-                        </div>
-                      </button>
-                    ))
+                    donationRequests.map(req => {
+                      const statusInfo = getStatusInfo(req.status);
+                      return (
+                        <button
+                          key={req.id}
+                          onClick={() => selectDonationForUpdate(req)}
+                          className="w-full border p-3 rounded-lg hover:bg-gray-100 text-left flex items-center gap-3 transition-colors"
+                        >
+                          <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                            <img 
+                              src={req.imageUrl || '/images/default-donation.jpg'} 
+                              alt={req.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = '/images/default-donation.jpg';
+                                e.target.className = 'w-full h-full object-contain p-1';
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{req.title}</p>
+                            <p className="text-sm text-gray-500 truncate">
+                              ${formatCurrency(req.currentAmount)} / ${formatCurrency(req.targetAmount)}
+                            </p>
+                            <span className={`flex items-center text-xs px-2 py-1 rounded-full ${statusInfo.color}`}>
+                              {statusInfo.icon}
+                              {statusInfo.label}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               ) : (
                 <form onSubmit={submitUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Shelter ID *
-                      </label>
-                      <input
-                        name="shelterId"
-                        type="text"
-                        value={updateForm.shelterId}
-                        onChange={handleUpdateChange}
-                        required
-                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Shelter Name *
-                      </label>
-                      <input
-                        name="shelterName"
-                        value={updateForm.shelterName}
-                        onChange={handleUpdateChange}
-                        required
-                        className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Title *
@@ -1500,7 +1886,7 @@ export default function Donations() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Current Amount
+                        Current Amount *
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-3 text-gray-500">$</span>
@@ -1511,9 +1897,13 @@ export default function Donations() {
                           min="0"
                           value={updateForm.currentAmount}
                           onChange={handleUpdateChange}
+                          required
                           className="w-full border p-2.5 pl-8 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Update this when donations are received
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1525,10 +1915,15 @@ export default function Donations() {
                         onChange={handleUpdateChange}
                         className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="OPEN">OPEN</option>
-                        <option value="COMPLETED">COMPLETED</option>
+                        <option value="PENDING">PENDING</option>
+                        <option value="PROCESSING">PROCESSING</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="SUCCESS">SUCCESS</option>
                         <option value="CANCELLED">CANCELLED</option>
                       </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ACTIVE = Target reached, SUCCESS = Admin approved
+                      </p>
                     </div>
                   </div>
 
@@ -1561,6 +1956,17 @@ export default function Donations() {
                     </div>
                   </div>
 
+                  {/* Status info box */}
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm font-medium text-blue-800 mb-1">Status Rules:</p>
+                    <ul className="text-xs text-blue-700 space-y-1">
+                      <li>• <span className="font-medium">PENDING</span>: $0 received (default for new campaigns)</li>
+                      <li>• <span className="font-medium">PROCESSING</span>: Some donations but below target</li>
+                      <li>• <span className="font-medium">ACTIVE</span>: Target reached (admin must mark as SUCCESS)</li>
+                      <li>• <span className="font-medium">SUCCESS</span>: Admin approved completed campaign</li>
+                    </ul>
+                  </div>
+
                   <div className="flex justify-end gap-3 pt-4 border-t">
                     <button
                       type="button"
@@ -1576,7 +1982,7 @@ export default function Donations() {
                       type="submit"
                       className="px-5 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition-colors"
                     >
-                      Update
+                      Update Campaign
                     </button>
                   </div>
                 </form>
